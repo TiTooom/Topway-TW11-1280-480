@@ -1,0 +1,37 @@
+---
+name: topway-bluetooth
+description: Bluetooth de l'autoradio Topway (appli com.tw.bt) — piloter la musique du téléphone (0x9e08, source 8), lire titre/artiste/nom du téléphone/état de connexion via les annonces com.unisound.* et 0x9f00, et dépanner un appairage bloqué. À charger pour toute fonction Bluetooth de Sandero.
+---
+
+# Bluetooth Topway
+
+## À NE JAMAIS FAIRE
+**Ouvrir `TWUtil(8)`** (canal série du module Bluetooth, `open(ids, 0x1c200)`) pendant que l'appli Bluetooth Topway tourne. Constaté le 04/11/2026 : plantage du Moniteur, puis **appairage impossible même après redémarrage**, tant que Sandero ouvrait ce canal à chaque démarrage. Option « Bluetooth direct (expert) » dans Outils : désactivée par défaut, avec avertissement.
+
+Si l'appairage est bloqué : installer une version sans canal 8 → forcer l'arrêt de Sandero et de « Bluetooth » (com.tw.bt) → redémarrage complet (Reset, pas seulement contact) → oublier l'autoradio sur le téléphone → réappairer.
+
+## Piloter la musique (sans canal 8) — `HeadUnit.btControl`
+- Son vers les haut-parleurs : `write(0x9e11, 0xc0, 8)` sur le canal principal (sinon la source reste sur 3 = Android et **aucun son**). Fait en choisissant « Bluetooth » et avant une commande.
+- Commandes : `write(0x9e08, code)` sur le canal principal → reçu par `BaseBTService.controlBtMusic(code)` : **1** lecture/pause, **3** suivant, **4** précédent, **5** lecture (si en pause), **6** pause (si en lecture), **11** sourdine, **12** fin de sourdine. 5/6 n'agissent que si la source BT (8) est active.
+- Les touches média Android (`ACTION_MEDIA_BUTTON`, `dispatchMediaKeyEvent`) **n'atteignent pas** l'appli Topway (constaté v0.6). L'appli a une MediaSession sans métadonnées.
+- Pas d'état lecture/pause disponible sans canal 8 : Sandero le déduit de ses propres commandes (`btPlayingGuess`).
+
+## Lire les infos (annonces, sans risque) — `BtInfo.java`
+L'appli BT (`BroadcastManager`) dialogue avec l'assistant vocal par broadcasts :
+- **Demandes** (Sandero les envoie toutes les 30 s et au retour à l'accueil) : `com.unisound.intent.action.GET_PAIR_INFO`, `GET_ID3_INFO`, `GET_DEVICE_INFO`, `CHECK_BTSTATUS`.
+- **Réponses** : `com.unisound.intent.action.SEND_PAIR_INFO` (`pairName` = nom du téléphone, `pairMac`) · `SEND_ID3_INFO` (`musicTitle`, `musicArtist`) · `SEND_DEVICE_INFO` (`deviceName` = nom de l'autoradio, `devicePin`).
+- **Spontanées** : `android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED` (int `android.bluetooth.adapter.extra.CONNECTION_STATE`, supposé 0 déconnecté / 1 connexion / 2 connecté / 3 déconnexion — **à confirmer**), `…adapter.action.STATE_CHANGED`, `com.tw.bt_phone_info` (`singal`, `power` : réseau et batterie du téléphone, échelle inconnue), appels `com.unisound.intent.action.SEND_CALL_INFO` (`state`, `callName`, `callNumber`) et `SEND_CALL_INFO2`.
+- Aussi écoutées par l'appli BT : `net.easyconn.a2dp.acquire/release`, `com.tw.launcher.btmsg`, `com.unisound.intent.action.ACC_ON/ACC_OFF`, `GET_CONTACTS`, `GET_CALL_INFO`.
+- **0x9f00** (canal principal, arg1 = 8, obj = titre) : titre en cours, « Not Provided » si absent (ignoré par Sandero).
+
+## Protocole du canal 8 (référence seulement, ne pas utiliser)
+`TWUtil(8)`, ids `010b 0112 0201 0203 0301 0510 9e08 9e1d`, baud 0x1c200. Commandes `write(20, 0)` lecture/pause, `write(20, 2)` suivant, `write(20, 3)` précédent. Reçus : 0x0007 HFP (2 = connecté), 0x0015 lecture (≠0), 0x0037 ID3 (`TWObject.obj3` titre, `obj4` « artiste-#album »), 0x0047 progression (arg1 & 0x7fffffff position, arg2 durée), 0x0004 appairage, 0x001f nom, 0x0021 PIN, 0x0030 état appairage, 0x0036 MAC, 0x003b appel.
+
+## Dans Sandero
+- Une seule source « Bluetooth » = tout le son du téléphone (musique, YouTube…). L'ancien mode « Applis » est fusionné (v0.8).
+- Pastille en haut à droite : nom + état (point vert/orange/gris), appui → appli com.tw.bt (appairage).
+- Journal : catégorie `BT` (chaque annonce avec ses extras), `CMD` (« Bluetooth write(0x9e08, n) », « demande de source 8 »).
+
+## Journal des vérifications
+- 2026-11-04 v0.6 : appairage OK sans canal 8 ; titre via 0x9f00 OK ; pas de son et boutons inactifs (source restée 3, touches média ignorées).
+- 2026-11-04 v0.8 : annonces testées sur émulateur uniquement (am broadcast). **À vérifier sur la voiture** : SEND_PAIR_INFO, CONNECTION_STATE_CHANGED (valeurs), 0x9e08, son après source 8.

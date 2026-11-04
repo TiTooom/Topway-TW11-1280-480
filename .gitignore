@@ -1,0 +1,41 @@
+# --- Données de l'autoradio : JAMAIS sur GitHub -------------------------------
+# APK propriétaires (Topway, Google, Spotify, Waze…) : redistribution interdite,
+# et plusieurs dépassent la limite de 100 Mo par fichier de GitHub.
+APP From autoradio/*
+!APP From autoradio/README.md
+
+# Infos système, configuration et identifiants personnels de l'autoradio
+# (UID/UUID, adresse Bluetooth, licence OTA, secret réseau dans getprop, manuel Topway).
+INFOS From autoradio/*
+!INFOS From autoradio/README.md
+
+# Exports faits avec les Outils de Sandero, s'ils sont copiés ailleurs
+SanderoExport_*/
+SanderoImage_*/
+journal*.txt
+plantages.txt
+twutil_*.txt
+
+# --- APK compilé : à publier en « Release » GitHub, pas dans le code -----------
+release/*.apk
+*.apk
+*.aab
+
+# --- Android / Gradle ---------------------------------------------------------
+SanderoLauncher/local.properties
+SanderoLauncher/.gradle/
+SanderoLauncher/.idea/
+SanderoLauncher/build/
+SanderoLauncher/app/build/
+SanderoLauncher/captures/
+*.iml
+*.jks
+*.keystore
+
+# --- Divers --------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+*.pyc
+.claude/settings.local.json
