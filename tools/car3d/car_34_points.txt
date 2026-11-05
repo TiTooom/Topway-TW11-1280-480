@@ -1,0 +1,14 @@
+image 870 x 557
+phare_gauche centre 0.9516 0.3827 boite 0.9314 0.3447 0.9739 0.4147 pixels 6894
+phare_droit centre 0.7519 0.4557 boite 0.6881 0.4153 0.8261 0.4931 pixels 31991
+feu_ar_gauche absent
+feu_ar_droit centre 0.0127 0.2719 boite 0.0096 0.2059 0.0226 0.3040 pixels 155
+sol 0.8121
+sol_avant 0.9290 0.8031
+sol_centre 0.4750 0.6572
+faisceau_gauche 1.4445 0.8667
+faisceau_droit 1.2367 1.0152
+tache_devant 1.1188 0.8640
+sol_cote_gauche 0.6427 0.5908
+sol_cote_droit 0.2848 0.7326
+sol_arriere 0.0957 0.5354

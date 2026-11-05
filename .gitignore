@@ -39,3 +39,7 @@ desktop.ini
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# --- Photo de la voiture (photo constructeur détourée) : usage perso, pas sur GitHub
+# Sans elle, l'appli utilise le rendu 3D (car_34.png).
+SanderoLauncher/app/src/main/res/drawable-nodpi/car_photo.png

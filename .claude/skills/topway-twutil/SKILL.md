@@ -24,11 +24,11 @@ description: API interne Topway android.tw.john.TWUtil (canaux, open/addHandler/
 
 | ID | Sens | Fiabilité |
 |---|---|---|
-| **0x0204** | Éclairage : arg1 == 1 → feux allumés (nuit). `com.tw.service` relaie `REQ_NIGHT_MODE_CMD`/`REQ_DAY_MODE_CMD` à Z-Link | sûr (code) — **jamais vu dans un journal** |
+| **0x0204** | Éclairage : arg1 == 1 → feux allumés (nuit). `com.tw.service` relaie `REQ_NIGHT_MODE_CMD`/`REQ_DAY_MODE_CMD` à Z-Link. Envoyé **au changement** : si les feux sont allumés avant le démarrage de l'autoradio, rien n'arrive (probable). Demande d'état possible par `write(0x0204, 0xff)` (même forme que les demandes de l'appli Radio, **probable**, jamais essayé : ce serait une écriture au démarrage, interdite sans accord). Il faut aussi que le fil ILL (éclairage) du faisceau de l'autoradio soit branché | sûr (code) — **jamais vu dans un journal** |
 | **0x0301** | Source audio active : 0 au démarrage, 1 radio, 3 média Android, 8 Bluetooth | **sûr (vu)** |
 | 0x0302 | arg1 = 0 au démarrage / extinction | inconnu |
 | 0x0201 | Touches (arg1 : 1 pause, 3 suivant, 4 précédent, 5 lecture, 6 pause, 9 avance, 10 retour) | probable |
-| 0x0203 | Sourdine ? Reçu très souvent, arg1 = 0, arg2 = -2147483618 constant | vu, sens inconnu |
+| **0x0203** | **Volume général** (bouton de façade) : arg1 = niveau, arg2 = 0x8000001E (bas = 30 = maximum). Le bouton fait monter arg1 de 17 à 29 pas à pas. arg1 = 0 au démarrage tant que le volume n'a pas bougé (pas le vrai niveau). Le volume Android (STREAM_MUSIC) ne le change pas et n'agit pas sur la radio. C'est le volume de la barre de son Topway, commun à toutes les sources. Réglage par Sandero (curseur de l'accueil, radio et Bluetooth) : `write(0x0203, niveau)` (v0.11, **probable**, vérifié par l'écho du MCU et noté au journal `[VOL] le MCU a suivi`) ; `write(0x0203, 0xff)` = demande d'état (appli Radio) | lecture **sûr (vu 05/11)**, écriture probable |
 | 0x0205 | Frein à main (arg1 = 1 au démarrage) | probable (vu) |
 | 0x020b / 0x020c | Fin d'écran de recul (variantes Nissan / LR) | probable |
 | **0x0304** | Vidéo de recul : écrit par l'écran Topway, 1 à l'affichage, 0 à la fermeture | **sûr (code + voiture)** |
@@ -59,3 +59,5 @@ Outils → **Moniteur TWUtil** (écoute le canal de Sandero, boutons « Simuler 
 
 ## Journal des vérifications
 - 2026-11-04 (v0.6, voiture) : 0x9f1c 1/0 et répétition 500 ms, 0x0301 = 3 après demande, 0x9f00 titres, 0x9e00 8/136, 0x9f10 arg2 3000, 0x0203 constant. 0x0204 jamais reçu (feux éteints pendant l'essai ?).
+- 2026-11-05 (v0.10, voiture) : 0x0203 = volume (arg1 12→15, 17→29 au bouton). 0x0301 = 1 après demande radio, 8 après BT ; bouton ⏻ radio → 0x0301 = 0. 0x9e00 arg1 = 8 / 136 à l'ouverture / fermeture de com.tw.bt, 131 au démarrage. 0x8201 arg1=1 arg2=16 au retour sur l'accueil (sens inconnu). 0x0302 arg1=0 et 0x9f10 arg2=3000 à l'extinction. 0x0204 toujours jamais reçu (essais de jour).
+- 2026-11-05 : recherche ciblée dans com.tw.service (commande d'écriture du volume) acceptée par l'utilisateur mais **bloquée par la règle deny de `.claude/settings.json`** ; non faite. À refaire si l'écho `write(0x0203, n)` ne marche pas.

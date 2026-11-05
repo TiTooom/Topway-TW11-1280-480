@@ -112,6 +112,7 @@ final class ObdPids {
         num(0x10, "Débit d'air (MAF)", "g/s", 2, 1, true, d -> ab(d) / 100.0);
         num(0x0E, "Avance à l'allumage", "°", 1, 1, true, d -> d[0] / 2.0 - 64);
         num(0x5E, "Débit carburant", "L/h", 2, 2, true, d -> ab(d) / 20.0);
+        num(0xA2, "Carburant injecté par coup", "mg", 2, 1, true, d -> ab(d) / 32.0);
         num(0x49, "Pédale d'accélérateur", "%", 1, 0, true, d -> pct(d[0]));
         num(0x62, "Couple réel", "%", 1, 0, true, d -> d[0] - 125);
 
@@ -187,14 +188,18 @@ final class ObdPids {
         });
         num(0x21, "Distance avec voyant allumé", "km", 2, 0, false, d -> ab(d));
         num(0x4D, "Temps avec voyant allumé", "min", 2, 0, false, d -> ab(d));
-        num(0x31, "Distance depuis effacement des codes", "km", 2, 0, false, d -> ab(d));
+        // Compteurs plafonnés par la norme (65535 km, 255) : ils ne bougent plus quand les codes
+        // n'ont jamais été effacés. Valeur juste, mais on l'écrit pour ne pas croire à un bug.
+        txt(0x31, "Distance depuis effacement des codes", 2, false, d ->
+                ab(d) >= 65535 ? "65535 km (plafond)" : ab(d) + " km");
         num(0x4E, "Temps depuis effacement des codes", "min", 2, 0, false, d -> ab(d));
-        num(0x30, "Démarrages depuis effacement des codes", "", 1, 0, false, d -> d[0]);
+        txt(0x30, "Démarrages depuis effacement des codes", 1, false, d ->
+                d[0] >= 255 ? "255 (plafond)" : String.valueOf(d[0]));
 
         // --- États (texte)
+        // L'octet B (bit 3 = moteur diesel) est faux sur la Sandero dCi (dit « essence ») : non affiché.
         txt(0x01, "Voyant moteur et diagnostics", 4, false, d ->
-                ((d[0] & 0x80) != 0 ? "VOYANT ALLUMÉ" : "voyant éteint") + " · " + (d[0] & 0x7F) + " code(s)"
-                        + ((d[1] & 0x08) != 0 ? " · diesel" : " · essence"));
+                ((d[0] & 0x80) != 0 ? "VOYANT ALLUMÉ" : "voyant éteint") + " · " + (d[0] & 0x7F) + " code(s)");
         txt(0x03, "Système carburant", 1, false, d -> {
             switch (d[0]) {
                 case 1: return "boucle ouverte (moteur froid)";

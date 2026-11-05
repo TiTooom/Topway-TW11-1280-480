@@ -169,6 +169,9 @@ final class HeadUnit implements Tw.Listener {
             case Tw.MSG_SOURCE:
                 source = arg1;
                 break;
+            case Tw.MSG_MUTE:
+                onMcuVolume(arg1, arg2);
+                break;
             case Tw.MSG_RADIO_INFO:
                 onRadioInfo(arg1, arg2, obj);
                 break;
@@ -248,7 +251,7 @@ final class HeadUnit implements Tw.Listener {
             case Tw.MSG_REVERSE: return "(marche arrière)";
             case Tw.MSG_SOURCE: return "(source)";
             case Tw.MSG_KEY: return "(touche)";
-            case Tw.MSG_MUTE: return "(sourdine)";
+            case Tw.MSG_MUTE: return "(volume)";
             case Tw.MSG_BRAKE: return "(frein à main)";
             case Tw.MSG_RADIO_INFO: return "(radio)";
             case Tw.MSG_RADIO_PRESET: return "(présélection)";
@@ -258,6 +261,64 @@ final class HeadUnit implements Tw.Listener {
             case 0x020b: case 0x020c: return "(fin de recul)";
             default: return "";
         }
+    }
+
+    // ================================================================ Volume de l'autoradio (MCU)
+
+    // 0x0203 : arg1 = niveau du volume général (bouton de façade), arg2 & 0xff = maximum (30).
+    // Vu sur la voiture le 05/11/2026 (le bouton fait monter arg1 de 17 à 29). Au démarrage arg1
+    // vaut 0 tant que personne n'a touché au volume : 0 n'est pris que si un vrai niveau a déjà été vu.
+    int mcuVolume = -1, mcuVolumeMax = 30;
+    private int volumeAsked = -1;
+    private long volumeAskedAt;
+    private int volumeChecks;
+    private final android.os.Handler main0 = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    private void onMcuVolume(int level, int flags) {
+        int max = flags & 0xff;
+        if (max >= 10 && max <= 60) mcuVolumeMax = max;
+        if (level < 0 || level > mcuVolumeMax) return;
+        if (level == 0 && mcuVolume < 0) return;
+        mcuVolume = level;
+        if (volumeAsked >= 0 && level == volumeAsked) {
+            if (volumeChecks < 3) Journal.log("VOL", "le MCU a suivi : volume " + level + "/" + mcuVolumeMax
+                    + " (" + (SystemClock.elapsedRealtime() - volumeAskedAt) + " ms)");
+            volumeChecks++;
+            volumeAsked = -1;
+            volumeCmdWorks = 1;
+        }
+    }
+
+    /** -1 inconnu, 1 le MCU suit write(0x0203, n), 0 il ne suit pas. */
+    int volumeCmdWorks = -1;
+
+    /**
+     * Règle le volume général de l'autoradio (celui du bouton, qui agit sur la radio).
+     * Commande probable (déduite du journal, pas du code Topway) : write(0x0203, niveau).
+     * Vérifiée à chaque fois : si le MCU ne renvoie pas le même niveau, c'est noté au journal.
+     */
+    void setMcuVolume(int level, boolean done) {
+        if (!available()) return;
+        level = Math.max(0, Math.min(level, mcuVolumeMax));
+        try {
+            main.write(Tw.MSG_MUTE, level);
+        } catch (Throwable t) {
+            Journal.error("VOL", "write(0x0203)", t);
+            return;
+        }
+        if (!done) return;
+        Journal.log("VOL", "volume autoradio demandé : write(0x0203, " + level + ")");
+        volumeAsked = level;
+        volumeAskedAt = SystemClock.elapsedRealtime();
+        final int asked = level;
+        main0.postDelayed(() -> {
+            if (volumeAsked == asked) {
+                volumeAsked = -1;
+                volumeCmdWorks = 0;
+                Journal.log("VOL", "le MCU n'a pas renvoyé le volume " + asked + " (reçu " + mcuVolume
+                        + ") : commande write(0x0203, n) sans effet ?");
+            }
+        }, 1500);
     }
 
     // ================================================================ Infos Bluetooth (annonces Topway)
@@ -367,6 +428,20 @@ final class HeadUnit implements Tw.Listener {
         else if (code == 5 || code == 3 || code == 4) btPlayingGuess = true;
         else if (code == 6) btPlayingGuess = false;
         changed();
+    }
+
+    /**
+     * Choix de la source Bluetooth : son du téléphone vers les haut-parleurs, puis « lecture »
+     * (code 5, sans effet si ça joue déjà). L'appli Bluetooth Topway met le téléphone en pause
+     * quand on passe sur la radio ; sans ce « lecture », la musique ne reprenait pas (journal 05/11).
+     */
+    void selectBt() {
+        if (!available()) return;
+        requestSource(Tw.SRC_BT);
+        main0.postDelayed(() -> {
+            if (source == Tw.SRC_BT) btControl(5);
+            else Journal.log("CMD", "reprise Bluetooth : source toujours " + source + ", lecture non envoyée");
+        }, 900);
     }
 
     void btPlayPause() { btCommand(0); }

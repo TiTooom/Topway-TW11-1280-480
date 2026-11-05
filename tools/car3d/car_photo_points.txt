@@ -1,0 +1,13 @@
+image 900 x 578
+phare_proche 0.3288 0.4324
+phare_proche_largeur 0.1826
+phare_loin 0.0384 0.4097
+phare_loin_largeur 0.0365
+feu_arriere 0.9699 0.2219
+sol_avant_proche 0.4977 0.8208
+sol_arriere_proche 0.9361 0.6558
+sol_avant_loin 0.1416 0.7624
+sol_arriere_loin 0.7900 0.6202
+faisceau_proche -0.0228 0.9900
+faisceau_loin -0.3699 0.8478
+tache_devant -0.1872 0.8905

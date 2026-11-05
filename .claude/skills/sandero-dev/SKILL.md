@@ -15,10 +15,10 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 | `BtInfo` | Annonces de l'appli Bluetooth Topway (nom, état, titre) |
 | `SanderoService` | Service permanent : marche arrière → caméra, retour au premier plan (réveil, lanceur d'origine), GPS, BtInfo |
 | `ReverseCamActivity` | Caméra de recul intégrée + mini-lecteur |
-| `CarView` | Dessin de la Sandero 1 (points relevés sur photo), reflet, halo, phares animés |
+| `CarView` | Sandero 1 vue de 3/4 avant : `res/drawable-nodpi/car_photo.png` (photo constructeur détourée par `tools/car3d/PhotoCut`, **non versionnée**, prioritaire) sinon `car_34.png` (rendu du modèle 3D par `tools/car3d/Car3D`), reflet et ombre compris ; repères par image (`Spec`) ; ombre et halo au sol, phares / faisceaux / feu arrière animés (positions en fraction de l'image, voir `tools/car3d/car_34_points.txt`) |
 | `Theme` | Palettes nuit / jour, mode auto 18 h–9 h, choix forcé |
 | `Clock` | Heure Europe/Paris indépendante du fuseau système, recalage GPS, `Clock.View` |
-| `Journal` | 1000 dernières lignes, `files/journal.txt` + `Android/data/fr.sandero.launcher/files/journal.txt` |
+| `Journal` | 10 000 dernières lignes (v0.11), écrites par ajout en fin de fichier (réécriture complète au-delà de 12 000 lignes ou sur `flushNow`), `files/journal.txt` + `Android/data/fr.sandero.launcher/files/journal.txt` |
 | `Safe` | Marqueurs d'étapes risquées, mode sans échec, journal des plantages |
 | `ToolsActivity` | Outils : export USB, sauvegardes, explorateur, journal, heure, thème, intégration Topway, caméra |
 | `SystemActivity` | Allègement : mémoire, applis à désactiver, animations, root |
@@ -55,16 +55,18 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.10 — 4 nov. 2026)
-**Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4) sans coupure du son (Reversing mute décoché) et retour à l'accueil ; appairage Bluetooth (sans canal 8) ; titre BT via 0x9f00 ; journal.
+## État du projet (v0.11 — 5 nov. 2026)
+**Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
-**À vérifier sur la voiture** :
-- v0.7 : son Bluetooth après source 8 ; boutons via 0x9e08 ; transition caméra sans flash noir.
-- v0.8 : pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE_CHANGED et ses valeurs) ; curseur de volume (STREAM_MUSIC agit-il sur le son BT ?) ; source unique Bluetooth.
-- v0.9 : dock Réglages/Applis ; thème jour/nuit et sa bascule ; correction de la vignette (icône taille fixe).
-- v0.10 : OBD2 (Outils → OBD2) : Android voit-il un Bluetooth utilisable (bouton « État du Bluetooth Android ») ? module Wi-Fi / USB ; protocole et PID réels de la Sandero.
+**À vérifier sur la voiture (v0.11)** :
+- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, n)` (probable) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
+- Retour Radio → Bluetooth : la musique reprend-elle (`0x9e08 = 5` 0,9 s après) ?
+- Curseur élargi (75 unités au lieu de 30).
+- OBD : connexion auto au démarrage, allumage du Bluetooth Android, reprise après arrêt du moteur, « Chercher la conso » (blocs Renault service 21 dans le journal).
+- Export : nom du dossier à l'heure de Paris, taille affichée.
+- Voiture 3/4 sur l'accueil (taille, lisibilité au soleil) ; phares : `[MCU] 0x0204` reçu quand on allume les feux ?
 
-**À faire / inconnu** : radio jamais testée ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root non testé ; valeurs OBD sur l'accueil (après validation sur la voiture).
+**À faire / inconnu** : conso diesel (décoder un bloc Renault après la recherche) ; fréquence / stations radio (0x0401 reçu `00 f8 23 d7`, non décodé) ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root non testé ; valeurs OBD sur l'accueil.
 
 ## Historique des bugs
 | Version | Problème | Cause | Solution |
@@ -79,7 +81,21 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 | 0.8 | Dock redondant ; interface toujours sombre | — | 0.9 : dock 2 cartes ; `Theme` |
 | 0.10 | Pas de données moteur | — | Écran OBD2 (ELM327 BT/Wi-Fi/USB), lecture seule, CSV |
 | 0.9 | Émulateur « rien ne répond » ; logo BT énorme | Émulateur figé (pas Sandero) ; marge fixe calibrée 1280×480 | Cold boot ; `Icon.sized` + `CENTER_INSIDE` |
+| 0.10 | Radio « à fond », curseur sans effet | Le curseur réglait STREAM_MUSIC ; la radio ne passe que par le volume MCU (0x0203) | 0.11 : curseur → `write(0x0203, n)` pour toutes les sources (un seul volume, comme Topway), vérifié par l'écho ; STREAM_MUSIC au maximum |
+| 0.10 | Voiture de profil (dessin à la main) | — | 0.11 : vue 3/4 calculée depuis `3D/Sandero.stl` (`tools/car3d`), reflet calculé (le reflet retourné ne marche pas en 3/4 : roues à des hauteurs différentes) |
+| 0.11 | Rendu 3D « jeu vidéo », mal texturé (avis utilisateur) | Modèle STL sans matières, bosselé | Photo réelle détourée (`PhotoCut`) : fond blanc → transparent, ombre de la photo → ombre noire transparente, antenne retirée, contraste + netteté, reflet calculé par colonne ; le rendu 3D reste en secours |
+| 0.11 | Détourage : pneu avant coupé en segments droits, pointillés clairs au bord du pneu arrière, bas du bouclier noirci (surtout la nuit) | Ligne du bas en segments à travers le pneu ; remontée de l'ombre dans le flanc gris ; pixels presque blancs isolés (bruit JPEG) ; remontée sous le bouclier | Contour réel des pneus (`PhotoCut.TIRES`, bord adouci), transparence des bords selon la couleur voisine, pixels isolés supprimés, pas de remontée sous le bouclier |
+| 0.10 | Journal trop court (1000 lignes) pour suivre des données CAN | — | 0.11 : 10 000 lignes, écriture par ajout |
+| 0.10 | Retour sur Bluetooth : musique arrêtée | com.tw.bt met le téléphone en pause hors source 8 | 0.11 : `selectBt` = source 8 + `0x9e08 = 5` |
+| 0.10 | OBD : à reconnecter à chaque fois ; « Bluetooth éteint » en boucle | L'autoradio éteint le Bluetooth Android au démarrage ; pas d'option auto | 0.11 : `enable()` à la connexion, pref `auto`, `Obd.autoStart` dans le service |
+| 0.10 | OBD : valeurs figées, 0 requête/s | PID abandonnés pour toujours après 3 NO DATA (moteur coupé) | 0.11 : PID redemandés toutes les 15 s ; 8 s sans réponse → ATPC + nouvelle recherche |
+| 0.10 | OBD : « essence » sur un diesel ; 65535 km / 255 semblent figés | Bit du PID 01 faux sur ce calculateur ; compteurs plafonnés par la norme | 0.11 : bit masqué ; « (plafond) » |
+| 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
+- 2026-11-05 : photo détourée testée sur émulateur 1280×480, jour, nuit, phares simulés : OK (lueur des phares discrète de jour).
+- 2026-11-05 : voiture 3/4 testée sur émulateur 1280×480, jour et nuit, phares simulés (Moniteur) : lueur des phares, faisceaux, feu arrière OK.
+- 2026-11-05 : journal 10 000 lignes testé sur émulateur (redémarrage forcé : aucune ligne en double). Volume unique radio + BT (demande utilisateur).
+- 2026-11-05 : journal voiture v0.10 analysé (voir les bugs 0.10 ci-dessus) ; v0.11 compilée, accueil vérifié sur émulateur 1280×480 (curseur élargi).
 - 2026-11-04 : v0.10 OBD2 testé sur émulateur avec faux module Wi-Fi (10.0.2.2:35000).
 - 2026-11-04 : v0.9 compilée, testée émulateur 1280×480 et 2400×1080 (nuit et jour).

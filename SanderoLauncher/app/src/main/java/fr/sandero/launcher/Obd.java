@@ -98,7 +98,11 @@ final class Obd {
     // ---- réglages (posés par l'écran)
     volatile boolean csv;
     volatile int fuel;
-    volatile boolean wantDtc;
+    volatile boolean wantDtc, wantProbe;
+    /** Résultat de la dernière recherche de conso (onglet Infos). */
+    volatile String probeReport = "";
+    /** PID non annoncés mais qui répondent (trouvés par la recherche de conso). */
+    private final Set<Integer> extra01 = Collections.synchronizedSet(new java.util.HashSet<>());
     final ConcurrentLinkedQueue<String> terminal = new ConcurrentLinkedQueue<>();
 
     private final ArrayDeque<String> raw = new ArrayDeque<>();
@@ -118,6 +122,36 @@ final class Obd {
 
     boolean running() {
         return running;
+    }
+
+    /**
+     * Connexion automatique (réglage « auto » de l'écran OBD2) : au démarrage du service et au
+     * réveil de l'autoradio, avec le dernier module choisi. Reste connecté en arrière-plan.
+     */
+    static void autoStart(Context c, String why) {
+        try {
+            android.content.SharedPreferences p = c.getSharedPreferences("obd", Context.MODE_PRIVATE);
+            if (!p.getBoolean("auto", false)) return;
+            Obd o = get();
+            if (o.running()) return;
+            if (Safe.safeMode(c)) {
+                Journal.log("OBD", "connexion automatique ignorée : mode sans échec");
+                return;
+            }
+            int t = p.getInt("transport", T_BT);
+            String target = t == T_WIFI ? p.getString("wifi", "192.168.0.10:35000")
+                    : t == T_USB ? p.getString("usb", "") : p.getString("bt", "");
+            if (target.isEmpty()) {
+                Journal.log("OBD", "connexion automatique : aucun module choisi");
+                return;
+            }
+            o.csv = p.getBoolean("csv", false);
+            o.fuel = p.getInt("fuel", 0);
+            Journal.log("OBD", "connexion automatique (" + why + ")");
+            o.start(c, t, target, p.getString("proto", "0"));
+        } catch (Throwable e) {
+            Journal.error("OBD", "connexion automatique", e);
+        }
     }
 
     // ================================================================ Démarrer / arrêter
@@ -315,7 +349,31 @@ final class Obd {
     private Link openBt(String address) throws Exception {
         BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
         if (a == null) throw new IOException("pas de Bluetooth Android sur cet appareil");
-        if (!a.isEnabled()) throw new IOException("Bluetooth Android éteint");
+        if (!a.isEnabled()) {
+            // L'autoradio éteint le Bluetooth Android à chaque démarrage (journal 05/11) : on le rallume,
+            // puisque la connexion a été demandée (bouton ou connexion automatique). Effet constaté :
+            // la musique du téléphone hache 4-5 s, puis repart.
+            boolean asked = false;
+            try {
+                asked = a.enable();
+            } catch (Throwable e) {
+                Journal.error("OBD", "allumage Bluetooth", e);
+            }
+            Journal.log("OBD", "Bluetooth Android éteint → allumage " + (asked ? "demandé" : "refusé"));
+            setState(CONNECTING, "Allumage du Bluetooth Android…");
+            for (int i = 0; i < 60 && alive() && !a.isEnabled(); i++) {
+                Thread.sleep(250);
+                if (i == 24 && !a.isEnabled()) {
+                    try {
+                        a.enable();   // le premier essai est parfois ignoré (vu le 05/11)
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+            if (!a.isEnabled()) throw new IOException("Bluetooth Android éteint (allumage sans effet)");
+            Journal.log("OBD", "Bluetooth Android allumé");
+            Thread.sleep(1500);   // laisse la pile Bluetooth finir de démarrer
+        }
         try {
             a.cancelDiscovery();
         } catch (Throwable ignored) {
@@ -493,7 +551,34 @@ final class Obd {
         elmDevice = clean(cmd("AT@1", 1500));
         readVoltage();
 
-        // --- Connexion au calculateur
+        // Le module reste ouvert ; si le véhicule se tait (moteur coupé, calculateur en veille),
+        // on referme la session K-line (ATPC) et on recherche à nouveau le véhicule.
+        boolean first = true;
+        while (alive()) {
+            vehicle(first);
+            first = false;
+            if (!alive()) break;
+            for (Map.Entry<Integer, Value> e : values.entrySet()) {
+                if (e.getKey() != ObdPids.ID_VOLT) e.getValue().noData = true;
+            }
+            try {
+                cmd("ATPC", 2000);
+            } catch (IOException e) {
+                Journal.log("OBD", "ATPC : " + e.getMessage());
+            }
+            timeouts = 0;
+            Thread.sleep(2000);
+        }
+    }
+
+    /** Délai sans aucune réponse du véhicule avant de le considérer comme perdu. */
+    private static final long LOST_MS = 8000;
+    /** Un PID qui ne répond plus est redemandé toutes les… */
+    private static final long RETRY_MS = 15000;
+
+    /** Une connexion au calculateur ; revient quand le véhicule ne répond plus. */
+    private void vehicle(boolean first) throws Exception {
+        String r;
         while (alive()) {
             setState(INIT, "Recherche du protocole du véhicule… (contact mis)");
             r = cmd("0100", 15000);
@@ -503,6 +588,8 @@ final class Obd {
             terminalStep();
             Thread.sleep(3000);
         }
+        if (!alive()) return;
+        if (!first) Journal.log("OBD", "véhicule retrouvé");
         protocol = clean(cmd("ATDP", 2000));
         protocolNum = clean(cmd("ATDPN", 2000));
         String pn = protocolNum.startsWith("A") && protocolNum.length() > 1 ? protocolNum.substring(1) : protocolNum;
@@ -522,7 +609,7 @@ final class Obd {
         Set<Integer> shown = new LinkedHashSet<>();
         for (ObdPids.P p : ObdPids.all()) {
             if (p.pid >= 0x1000) continue;
-            if (!supported01.contains(p.pid)) continue;
+            if (!supported01.contains(p.pid) && !extra01.contains(p.pid)) continue;
             if (p.once) {
                 readPid(p.pid);
             } else if (p.fast) fast.add(p.pid);
@@ -533,7 +620,7 @@ final class Obd {
             if (ObdPids.get(pid) == null) slow.add(pid);
         }
         shown.add(ObdPids.ID_VOLT);
-        if (supported01.contains(0x5E) || supported01.contains(0x10)) {
+        if (fuelSource(fast) != 0) {
             shown.add(ObdPids.ID_LH);
             if (supported01.contains(0x0D)) shown.add(ObdPids.ID_L100);
         }
@@ -549,6 +636,11 @@ final class Obd {
         // --- Boucle
         setState(RUNNING, "Connecté · " + (protocol.isEmpty() ? "véhicule" : protocol));
         int cycle = 0, slowIdx = 0;
+        long lastOk = System.currentTimeMillis();
+        // PID qui ne répondent plus : redemandés de temps en temps (avant : abandonnés pour toujours,
+        // d'où des valeurs figées à l'écran après un arrêt du moteur, journal du 05/11).
+        Map<Integer, Long> parked = new java.util.LinkedHashMap<>();
+        Set<Integer> fastSet = new java.util.HashSet<>(fast);
         while (alive()) {
             long t0 = System.currentTimeMillis();
             terminalStep();
@@ -556,17 +648,66 @@ final class Obd {
                 wantDtc = false;
                 readDtc();
             }
+            if (wantProbe) {
+                wantProbe = false;
+                List<Integer> found = probeFuel();
+                lastOk = System.currentTimeMillis();
+                boolean add = false;
+                for (int p : found) {
+                    if (fast.contains(p) || slow.contains(p)) continue;
+                    fast.add(p);
+                    fastSet.add(p);
+                    add = true;
+                }
+                if (add) {
+                    Set<Integer> d = new LinkedHashSet<>(display);
+                    if (fuelSource(fast) != 0) {
+                        d.add(ObdPids.ID_LH);
+                        d.add(ObdPids.ID_L100);
+                    }
+                    d.addAll(found);
+                    List<Integer> l = new ArrayList<>(d);
+                    Collections.sort(l, (x, y) -> order(x) - order(y));
+                    display = l;
+                    displayVersion++;
+                }
+                setState(RUNNING, "Connecté · " + (protocol.isEmpty() ? "véhicule" : protocol));
+            }
             for (int i = 0; i < fast.size() && alive(); i++) {
-                if (!readPid(fast.get(i))) fast.remove(i--);
+                int res = readPid(fast.get(i));
+                if (res > 0) lastOk = System.currentTimeMillis();
+                else if (res < 0) parked.put(fast.remove(i--), t0 + RETRY_MS);
             }
             if (!slow.isEmpty()) {
                 // Une valeur lente par tour, plus toutes au premier tour.
                 int n = cycle == 0 ? slow.size() : 1;
                 for (int k = 0; k < n && !slow.isEmpty() && alive(); k++) {
                     slowIdx %= slow.size();
-                    if (!readPid(slow.get(slowIdx))) slow.remove(slowIdx);
+                    int res = readPid(slow.get(slowIdx));
+                    if (res > 0) lastOk = System.currentTimeMillis();
+                    if (res < 0) parked.put(slow.remove(slowIdx), t0 + RETRY_MS);
                     else slowIdx++;
                 }
+            }
+            // Un PID en attente par tour, quand son heure est venue.
+            for (Map.Entry<Integer, Long> e : parked.entrySet()) {
+                if (e.getValue() > t0) continue;
+                int pid = e.getKey();
+                int res = readPid(pid);
+                if (res > 0) {
+                    parked.remove(pid);
+                    lastOk = System.currentTimeMillis();
+                    Journal.log("OBD", "PID " + String.format("%02X", pid) + " : répond à nouveau");
+                    if (fastSet.contains(pid)) fast.add(pid);
+                    else slow.add(pid);
+                } else {
+                    e.setValue(t0 + RETRY_MS);
+                }
+                break;
+            }
+            if (System.currentTimeMillis() - lastOk > LOST_MS) {
+                setState(INIT, "Le véhicule ne répond plus (moteur coupé ?) · nouvelle recherche…");
+                return;
             }
             if (cycle % 5 == 0) readVoltage();
             derived();
@@ -624,8 +765,8 @@ final class Obd {
         return out;
     }
 
-    /** Lit un PID du mode 01 ; false s'il faut arrêter de le demander. */
-    private boolean readPid(int pid) throws Exception {
+    /** Lit un PID du mode 01 : 1 lu, 0 pas de réponse cette fois, -1 ne répond plus (3 échecs). */
+    private int readPid(int pid) throws Exception {
         String c = String.format("01%02X", pid);
         String r = cmd(c, 2000);
         int[] m = find(messages(r, c), 0x41, pid);
@@ -637,11 +778,12 @@ final class Obd {
         if (m == null) {
             v.fails++;
             if (v.fails >= 3) {
+                if (!v.noData) Journal.log("OBD", "PID " + String.format("%02X", pid) + " : plus de réponse ("
+                        + oneLine(r) + "), redemandé toutes les " + (RETRY_MS / 1000) + " s");
                 v.noData = true;
-                Journal.log("OBD", "PID " + String.format("%02X", pid) + " : plus de réponse (" + oneLine(r) + "), abandonné");
-                return false;
+                return -1;
             }
-            return true;
+            return 0;
         }
         int[] d = new int[m.length - 2];
         System.arraycopy(m, 2, d, 0, d.length);
@@ -657,7 +799,7 @@ final class Obd {
             milOn = (d[0] & 0x80) != 0;
             dtcCount = d[0] & 0x7F;
         }
-        return true;
+        return 1;
     }
 
     private void readVoltage() throws Exception {
@@ -681,13 +823,125 @@ final class Obd {
         v.time = System.currentTimeMillis();
     }
 
-    /** Consommation : débit carburant (5E) si présent, sinon débit d'air (essence/GPL). */
+    /** D'où vient la conso : 1 PID 5E, 2 PID A2 (mg/coup), 3 débit d'air (essence/GPL), 0 rien. */
+    private int fuelSource(List<Integer> readList) {
+        if (readList.contains(0x5E)) return 1;
+        if (readList.contains(0xA2) && readList.contains(0x0C)) return 2;
+        if (readList.contains(0x10) && fuel != 1) return 3;
+        return 0;
+    }
+
+    // ================================================================ Recherche de la conso
+
+    /**
+     * Cherche où le calculateur donne le carburant injecté (la Sandero diesel n'annonce ni 5E
+     * ni débit d'air : PID 01 04 05 0B 0C 0D 0F 1C 20 21 23 30 31, relevé du 05/11/2026).
+     * 1) PID standard non annoncés (certains calculateurs répondent quand même) ;
+     * 2) blocs de données Renault (service KWP 21, lecture seule) du calculateur moteur
+     *    (adresse 7A, probable) : chaque bloc qui répond est copié tel quel dans le journal,
+     *    pour repérer ensuite l'octet du débit carburant en comparant ralenti et 2500 tr/min.
+     * Aucune écriture : seulement des lectures (21xx) et au besoin une ouverture de session (10C0).
+     */
+    private List<Integer> probeFuel() throws Exception {
+        List<Integer> found = new ArrayList<>();
+        StringBuilder rep = new StringBuilder();
+        rep.append("Recherche du ").append(Clock.format("HH:mm:ss")).append(" · régime ").append(format(0x0C))
+                .append(" tr/min · charge ").append(format(0x04)).append(" %\n");
+        Journal.log("OBD", "recherche conso : début · régime " + format(0x0C) + " tr/min · charge " + format(0x04) + " %");
+        setState(RUNNING, "Recherche de la conso : PID standard…");
+        for (int pid : new int[]{0x5E, 0xA2, 0x10, 0x9D, 0x9E, 0x83}) {
+            if (!alive()) return found;
+            String c = String.format("01%02X", pid);
+            String r = cmd(c, 2000);
+            int[] m = find(messages(r, c), 0x41, pid);
+            String line = c + " → " + (m == null ? oneLine(r) : ObdPids.hex(m));
+            rep.append(line).append('\n');
+            Journal.log("OBD", "recherche conso : " + line);
+            if (m != null && ObdPids.get(pid) != null) {
+                found.add(pid);
+                extra01.add(pid);
+            }
+        }
+
+        // --- Calculateur Renault (service 21)
+        setState(RUNNING, "Recherche de la conso : calculateur Renault…");
+        String header = null;
+        boolean session = false;
+        for (String h : new String[]{"", "817AF1"}) {
+            if (!alive()) return found;
+            if (!h.isEmpty()) cmd("ATSH" + h, 2000);
+            String r = cmd("2180", 3000);
+            String one = oneLine(r);
+            rep.append("en-tête ").append(h.isEmpty() ? "standard" : h).append(" · 2180 → ").append(one).append('\n');
+            Journal.log("OBD", "recherche conso : en-tête " + (h.isEmpty() ? "standard" : h) + " · 2180 → " + one);
+            List<int[]> ms = messages(r, "2180");
+            boolean refused = false, ok = false;
+            for (int[] m : ms) {
+                if (m.length >= 2 && m[0] == 0x61) ok = true;
+                if (m.length >= 2 && m[0] == 0x7F && m[1] == 0x21) refused = true;
+            }
+            if (refused && !ok) {
+                String s = oneLine(cmd("10C0", 3000));
+                Journal.log("OBD", "recherche conso : ouverture de session 10C0 → " + s);
+                rep.append("10C0 → ").append(s).append('\n');
+                session = true;
+                ok = refused = false;
+                for (int[] m : messages(cmd("2180", 3000), "2180")) if (m.length >= 2 && (m[0] == 0x61 || m[0] == 0x7F)) ok = true;
+            }
+            if (ok || refused) {
+                header = h;
+                break;
+            }
+        }
+        int blocks = 0;
+        if (header == null) {
+            rep.append("Le calculateur ne répond pas au service 21 (données Renault).\n");
+            Journal.log("OBD", "recherche conso : pas de réponse au service 21");
+        } else {
+            for (int lid = 0x01; lid <= 0xFF && alive(); lid++) {
+                if (lid % 16 == 0) setState(RUNNING, "Recherche de la conso : bloc " + String.format("%02X", lid) + "/FF…");
+                String c = String.format("21%02X", lid);
+                String r = cmd(c, 1500);
+                for (int[] m : messages(r, c)) {
+                    if (m.length >= 3 && m[0] == 0x61 && m[1] == lid) {
+                        blocks++;
+                        String line = c + " → " + ObdPids.hex(m);
+                        rep.append(line).append('\n');
+                        Journal.log("OBD", "Renault " + line);
+                    }
+                }
+                if (lid % 8 == 0) terminalStep();
+            }
+            rep.append(blocks).append(" bloc(s) de données Renault lus.\n");
+            Journal.log("OBD", "recherche conso : " + blocks + " bloc(s) Renault (service 21)");
+        }
+        // Retour à l'état normal
+        try {
+            if (session) cmd("1081", 3000);
+            if (header != null && !header.isEmpty()) cmd("ATSHC133F1", 2000);
+        } catch (IOException e) {
+            Journal.log("OBD", "recherche conso : retour à l'état normal : " + e.getMessage());
+        }
+        timeouts = 0;
+        rep.append(found.isEmpty() ? "Aucun PID standard de conso.\n" : "PID trouvés : " + pidList(found) + "\n");
+        probeReport = rep.toString();
+        Journal.log("OBD", "recherche conso : fin · PID standard trouvés : " + (found.isEmpty() ? "aucun" : pidList(found)));
+        return found;
+    }
+
+    /** Consommation : 5E (L/h), sinon A2 (mg par coup), sinon débit d'air (essence/GPL). */
     private void derived() {
         double lh = Double.NaN;
         Value f = values.get(0x5E);
+        Value a2 = values.get(0xA2);
+        Value rpm = values.get(0x0C);
         Value maf = values.get(0x10);
-        if (f != null && !Double.isNaN(f.num)) lh = f.num;
-        else if (maf != null && !Double.isNaN(maf.num) && fuel != 1) {
+        if (f != null && !f.noData && !Double.isNaN(f.num)) lh = f.num;
+        else if (a2 != null && !a2.noData && !Double.isNaN(a2.num) && rpm != null && !Double.isNaN(rpm.num)) {
+            // mg par cylindre et par coup × 4 cylindres × (tr/min ÷ 2) × 60 → g/h, ÷ densité (g/L)
+            double density = fuel == 1 ? 832 : fuel == 2 ? 540 : 745;
+            lh = a2.num * 4 * (rpm.num / 2.0) * 60.0 / 1000.0 / density;
+        } else if (maf != null && !maf.noData && !Double.isNaN(maf.num) && fuel != 1) {
             double afr = fuel == 2 ? 15.5 : 14.7, density = fuel == 2 ? 540 : 745; // g/L
             lh = maf.num * 3600.0 / (afr * density);
         }

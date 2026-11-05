@@ -90,16 +90,17 @@ final class VolumeSlider extends View {
         c.restore();
 
         // Icône haut-parleur en bas, valeur en haut pendant le glissement.
-        int s = Math.round(w * 0.5f);
+        // Proportions prévues pour un curseur large (75 unités) : icône et chiffre un peu plus petits.
+        int s = Math.round(w * 0.4f);
         int cx = Math.round(w / 2f);
-        int iy = Math.round(h - w * 0.75f);
+        int iy = Math.round(h - w * 0.62f);
         speaker.setType(value == 0 ? Icon.VOL_DOWN : Icon.VOL_UP);
         speaker.setAlpha(value == 0 ? 120 : 230);
         speaker.setBounds(cx - s / 2, iy - s / 2, cx + s / 2, iy + s / 2);
         speaker.draw(c);
         if (dragging) {
-            label.setTextSize(w * 0.42f);
-            c.drawText(String.valueOf(value), cx, w * 0.75f, label);
+            label.setTextSize(w * 0.36f);
+            c.drawText(String.valueOf(value), cx, w * 0.62f, label);
         }
     }
 

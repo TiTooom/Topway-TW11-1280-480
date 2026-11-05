@@ -632,7 +632,8 @@ public class ToolsActivity extends Activity {
         running = true;
         cancel = false;
         files = bytes = skipped = 0;
-        final String folder = "SanderoExport_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ROOT).format(new Date());
+        // Heure de Paris (Clock), pas celle du système qui est en Asia/Shanghai.
+        final String folder = "SanderoExport_" + Clock.format("yyyyMMdd_HHmmss");
         ui.post(progress);
         new Thread(() -> {
             String result;
@@ -920,9 +921,11 @@ public class ToolsActivity extends Activity {
     }
 
     private void writeText(Object dir, String name, String content) throws IOException {
+        byte[] b = content.getBytes(StandardCharsets.UTF_8);
         try (OutputStream o = dest.file(dir, name)) {
-            o.write(content.getBytes(StandardCharsets.UTF_8));
+            o.write(b);
         }
+        bytes += b.length;   // oublié avant : l'export du journal affichait « 0 o »
         files++;
     }
 
@@ -987,7 +990,12 @@ public class ToolsActivity extends Activity {
 
         @Override Object dir(Object parent, String name) throws IOException {
             File d = new File((File) parent, name);
-            if (!d.isDirectory() && !d.mkdirs()) throw new IOException("impossible de créer " + d);
+            if (!d.isDirectory() && !d.mkdirs()) {
+                File p = (File) parent;
+                if (!p.isDirectory()) throw new IOException("clé USB absente ou pas encore prête (" + p + ")");
+                if (!p.canWrite()) throw new IOException("clé USB en lecture seule pour Sandero (" + p + ")");
+                throw new IOException("impossible de créer " + d);
+            }
             return d;
         }
 

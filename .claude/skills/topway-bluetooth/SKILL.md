@@ -15,12 +15,13 @@ Si l'appairage est bloqué : installer une version sans canal 8 → forcer l'arr
 - Commandes : `write(0x9e08, code)` sur le canal principal → reçu par `BaseBTService.controlBtMusic(code)` : **1** lecture/pause, **3** suivant, **4** précédent, **5** lecture (si en pause), **6** pause (si en lecture), **11** sourdine, **12** fin de sourdine. 5/6 n'agissent que si la source BT (8) est active.
 - Les touches média Android (`ACTION_MEDIA_BUTTON`, `dispatchMediaKeyEvent`) **n'atteignent pas** l'appli Topway (constaté v0.6). L'appli a une MediaSession sans métadonnées.
 - Pas d'état lecture/pause disponible sans canal 8 : Sandero le déduit de ses propres commandes (`btPlayingGuess`).
+- **Retour radio → Bluetooth** : l'appli Topway met le téléphone en pause quand la source quitte 8 ; revenir sur la source 8 ne relance pas la musique (vu 05/11). Sandero (`HeadUnit.selectBt`, v0.11) envoie `0x9e08 = 5` (lecture) 0,9 s après la demande de source 8.
 
 ## Lire les infos (annonces, sans risque) — `BtInfo.java`
 L'appli BT (`BroadcastManager`) dialogue avec l'assistant vocal par broadcasts :
 - **Demandes** (Sandero les envoie toutes les 30 s et au retour à l'accueil) : `com.unisound.intent.action.GET_PAIR_INFO`, `GET_ID3_INFO`, `GET_DEVICE_INFO`, `CHECK_BTSTATUS`.
 - **Réponses** : `com.unisound.intent.action.SEND_PAIR_INFO` (`pairName` = nom du téléphone, `pairMac`) · `SEND_ID3_INFO` (`musicTitle`, `musicArtist`) · `SEND_DEVICE_INFO` (`deviceName` = nom de l'autoradio, `devicePin`).
-- **Spontanées** : `android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED` (int `android.bluetooth.adapter.extra.CONNECTION_STATE`, supposé 0 déconnecté / 1 connexion / 2 connecté / 3 déconnexion — **à confirmer**), `…adapter.action.STATE_CHANGED`, `com.tw.bt_phone_info` (`singal`, `power` : réseau et batterie du téléphone, échelle inconnue), appels `com.unisound.intent.action.SEND_CALL_INFO` (`state`, `callName`, `callNumber`) et `SEND_CALL_INFO2`.
+- **Spontanées** : `android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED` (int `android.bluetooth.adapter.extra.CONNECTION_STATE` : **0 déconnecté** (à l'extinction) et **2 connecté** (~5 s après le démarrage) vus le 05/11 ; 1 / 3 supposés), `…adapter.action.STATE_CHANGED`, `com.tw.bt_phone_info` (`singal`, `power` : réseau et batterie du téléphone, échelle inconnue), appels `com.unisound.intent.action.SEND_CALL_INFO` (`state`, `callName`, `callNumber`) et `SEND_CALL_INFO2`.
 - Aussi écoutées par l'appli BT : `net.easyconn.a2dp.acquire/release`, `com.tw.launcher.btmsg`, `com.unisound.intent.action.ACC_ON/ACC_OFF`, `GET_CONTACTS`, `GET_CALL_INFO`.
 - **0x9f00** (canal principal, arg1 = 8, obj = titre) : titre en cours, « Not Provided » si absent (ignoré par Sandero).
 
@@ -34,4 +35,6 @@ L'appli BT (`BroadcastManager`) dialogue avec l'assistant vocal par broadcasts :
 
 ## Journal des vérifications
 - 2026-11-04 v0.6 : appairage OK sans canal 8 ; titre via 0x9f00 OK ; pas de son et boutons inactifs (source restée 3, touches média ignorées).
-- 2026-11-04 v0.8 : annonces testées sur émulateur uniquement (am broadcast). **À vérifier sur la voiture** : SEND_PAIR_INFO, CONNECTION_STATE_CHANGED (valeurs), 0x9e08, son après source 8.
+- 2026-11-04 v0.8 : annonces testées sur émulateur uniquement (am broadcast).
+- 2026-11-05 v0.10 (voiture) : **sûr** : SEND_PAIR_INFO (nom + MAC, `null` après déconnexion), SEND_ID3_INFO (titre + artiste), SEND_DEVICE_INFO, CONNECTION_STATE_CHANGED 0/2, son après source 8, `0x9e08 = 3` (suivant : nouveau titre en 0,3 s). Musique arrêtée au retour de la radio → v0.11 envoie « lecture ».
+- 2026-11-05 : allumer le **Bluetooth Android** (pour l'OBD) fait hacher la musique du téléphone 4-5 s puis tout repart (dit par l'utilisateur) ; l'appairage du téléphone n'est pas cassé. L'autoradio éteint le Bluetooth Android à chaque démarrage.

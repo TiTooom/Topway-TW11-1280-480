@@ -60,7 +60,7 @@ public class ObdActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Obd obd = Obd.get();
 
-    private TextView statusText, deviceBtn, linkBtn, connectBtn, protoBtn, fuelBtn, csvBtn, footer;
+    private TextView statusText, deviceBtn, linkBtn, connectBtn, protoBtn, fuelBtn, csvBtn, autoBtn, footer;
     private TextView dtcText, infoText, termText;
     private ScrollView termScroll;
     private LinearLayout grid;
@@ -104,8 +104,9 @@ public class ObdActivity extends Activity {
         } catch (Throwable ignored) {
         }
         stopDiscovery();
-        // En quittant l'écran (retour), on coupe la liaison ; un simple passage à l'accueil la garde.
-        if (isFinishing()) obd.stop();
+        // En quittant l'écran (retour), on coupe la liaison, sauf en connexion automatique
+        // (elle reste ouverte en arrière-plan). Un simple passage à l'accueil la garde toujours.
+        if (isFinishing() && !prefs.getBoolean("auto", false)) obd.stop();
         super.onDestroy();
     }
 
@@ -154,6 +155,26 @@ public class ObdActivity extends Activity {
             paintButtons();
         });
         left.addView(csvBtn);
+        autoBtn = button("", 0xFF3F3F46, v -> {
+            boolean on = !prefs.getBoolean("auto", false);
+            prefs.edit().putBoolean("auto", on).apply();
+            Journal.log("OBD", "connexion automatique au démarrage : " + (on ? "oui" : "non"));
+            if (on) Toast.makeText(this, "Au démarrage, Sandero allume le Bluetooth Android et se connecte au module "
+                    + "(la musique du téléphone peut hacher quelques secondes).", Toast.LENGTH_LONG).show();
+            paintButtons();
+        });
+        left.addView(autoBtn);
+        left.addView(button("Chercher la conso (moteur tournant)", 0xFF7C3AED, v -> {
+            if (obd.state != Obd.RUNNING) {
+                Toast.makeText(this, "Connectez-vous d'abord au véhicule, moteur tournant", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            obd.wantProbe = true;
+            Journal.log("UI", "OBD : recherche de la conso demandée");
+            Toast.makeText(this, "Recherche (1 à 2 min). Faites-la au ralenti, puis une 2e fois vers 2500 tr/min, "
+                    + "et exportez le journal.", Toast.LENGTH_LONG).show();
+            showPage(2);
+        }));
         left.addView(button("Copier un relevé dans le journal", 0xFF0F766E, v -> {
             Journal.log("OBD", "relevé : " + obd.snapshot());
             Toast.makeText(this, "Relevé ajouté au journal", Toast.LENGTH_SHORT).show();
@@ -330,6 +351,9 @@ public class ObdActivity extends Activity {
         boolean csv = prefs.getBoolean("csv", false);
         csvBtn.setText((csv ? "●  " : "○  ") + "Enregistrer en CSV : " + (csv ? "oui" : "non"));
         csvBtn.setBackground(round(csv ? 0xFF166534 : 0xFF3F3F46, 14));
+        boolean auto = prefs.getBoolean("auto", false);
+        autoBtn.setText((auto ? "●  " : "○  ") + "Connexion auto au démarrage : " + (auto ? "oui" : "non"));
+        autoBtn.setBackground(round(auto ? 0xFF166534 : 0xFF3F3F46, 14));
         boolean on = obd.running();
         connectBtn.setText(on ? "Se déconnecter" : "Se connecter");
         connectBtn.setBackground(round(on ? 0xFFB91C1C : 0xFF2563EB, 14));
@@ -499,8 +523,10 @@ public class ObdActivity extends Activity {
         p.setLength(0);
         for (int id : obd.supported09) p.append(String.format("%02X ", id));
         line(sb, "PID mode 09 annoncés", p.toString().trim());
-        sb.append("\nConso « calcul » : depuis le débit carburant (PID 5E) si le calculateur le donne, "
-                + "sinon depuis le débit d'air (essence/GPL seulement, estimation).");
+        sb.append("\nConso « calcul » : depuis le débit carburant (PID 5E) ou le carburant injecté (PID A2) "
+                + "si le calculateur les donne, sinon depuis le débit d'air (essence/GPL seulement). "
+                + "Si rien n'apparaît : bouton « Chercher la conso », moteur tournant.");
+        if (!obd.probeReport.isEmpty()) sb.append("\n\n— Recherche de la conso —\n").append(obd.probeReport);
         return sb.toString();
     }
 
@@ -777,8 +803,8 @@ public class ObdActivity extends Activity {
             } catch (Throwable e) {
                 sb.append("Erreur de lecture : ").append(e);
             }
-            if (!enabled) sb.append("\n\nL'allumer peut gêner le Bluetooth du téléphone (appli Topway) : à essayer à l'arrêt, "
-                    + "et à éteindre si l'appairage du téléphone se met à mal marcher.");
+            if (!enabled) sb.append("\n\nL'autoradio l'éteint à chaque démarrage. « Se connecter » (ou la connexion auto) "
+                    + "le rallume tout seul ; la musique du téléphone peut hacher quelques secondes.");
         }
         Journal.log("OBD", "diagnostic Bluetooth : " + Obd.oneLine(sb.toString().replace('\n', ' ')));
         AlertDialog.Builder b = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)

@@ -9,7 +9,7 @@ description: Caméra de recul de l'autoradio Topway et sa reprise dans Sandero (
 - Marche arrière : message **0x9f1c** arg1 = 1 → `TWService` lance `ReverseActivity` (si sa config de caméra ≠ -1) ; arg1 = 0 → la ferme. Variantes : `LRReverseActivity`, `ReverseNissanActivity` (fermées sur 0x020c / 0x020b).
 - `ReverseActivity.onResume` → `write(0x0304, 1)` ; `onPause` → `write(0x0304, 0)` **et libère la caméra** (aussi dans `surfaceDestroyed`). Une appli qui passe par-dessus récupère donc la caméra.
 - Ouverture : `Camera.open(d.R)` (numéro lu dans la config : AHD…), `setAnalogInputColor(lum+32, contraste+102, saturation+100)` bornés 0–255 (valeurs par défaut 32/102/100), `setCameraFlipStatus` si miroir, aperçu sur `SurfaceView` (`setType(3)`), `startPreview` quand le signal vidéo est présent (`/sys/class/tw/av/signal`). Si caméra id 3 (AHD) : `write(0x9f11/12/13, valeur)`.
-- **Son coupé en marche arrière** : réglage Topway Paramètres → Son → « Reversing mute ». Le décocher (Sandero ne coupe rien).
+- **Son coupé en marche arrière** : réglage Topway Paramètres → Son → « Reversing mute » (en français « Inverse le muet »). **Sûr (voiture, 05/11/2026)** : il faut le mettre sur **« open »** (il était sur « close », ce qui coupait le son). Sandero ne coupe rien lui-même.
 
 ## Ce que fait Sandero
 - `SanderoService` écoute 0x9f1c → ouvre **tout de suite** `ReverseCamActivity` (tâche séparée, singleTask, sans animation), puis vérifie à 0,25 / 0,6 / 1 / 1,6 s qu'elle est devant (`isFront` = activité reprise) et la ramène si l'écran Topway passe dessus.
@@ -30,4 +30,5 @@ description: Caméra de recul de l'autoradio Topway et sa reprise dans Sandero (
 
 ## Journal des vérifications
 - 2026-11-04 v0.6 (voiture) : caméra 4 OK, son conservé (Reversing mute décoché), retour accueil OK, flash noir ~0,9 s.
-- 2026-11-04 v0.7 (émulateur) : fenêtre ouverte 30 ms après la marche arrière simulée. **À vérifier sur la voiture.**
+- 2026-11-04 v0.7 (émulateur) : fenêtre ouverte 30 ms après la marche arrière simulée.
+- 2026-11-05 v0.10 (voiture, 3 marches arrière) : fenêtre ouverte ~150 ms après 0x9f1c, caméra 4 image OK (luminosité 71–108 de jour), **son conservé** avec « Inverse le muet » = open, retour accueil OK. 0x9f1c répété toutes les 500 ms confirmé (×39 en 20 s).

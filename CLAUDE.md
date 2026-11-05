@@ -56,6 +56,8 @@ docs/images/               captures
 SanderoLauncher/           code Android (Java pur, sans AndroidX, minSdk 21, targetSdk 27)
 tools/Sauvegarde_ADB.bat   image des partitions depuis le PC (adb root)
 tools/reverse/             scripts d'analyse dexdump (voir skill topway-reverse-engineering)
+tools/car3d/               rendu de la voiture de l'accueil depuis 3D/Sandero.stl (voir son README)
+3D/                        modèle 3D de la Sandero (STL)
 release/                   APK compilé (non versionné : publier en Release GitHub)
 APP From autoradio/        APK récupérés sur l'autoradio  — NON VERSIONNÉ, NE PAS LIRE
 INFOS From autoradio/      infos système, config, manuel — NON VERSIONNÉ, NE PAS LIRE

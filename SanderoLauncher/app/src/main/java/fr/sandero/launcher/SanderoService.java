@@ -54,6 +54,7 @@ public class SanderoService extends Service implements HeadUnit.Listener {
         hu.addListener(this);
         Clock.startGps(this);
         BtInfo.start(this);
+        Obd.autoStart(this, "démarrage");
 
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_SCREEN_ON);
@@ -158,6 +159,7 @@ public class SanderoService extends Service implements HeadUnit.Listener {
         @Override
         public void onReceive(Context context, Intent intent) {
             Journal.log("SVC", "réveil : " + intent.getAction());
+            Obd.autoStart(SanderoService.this, "réveil");
             if (tools.getBoolean("wake_front", true) && !hu.reverse) {
                 handler.postDelayed(SanderoService.this::bringToFront, 800);
             }

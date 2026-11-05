@@ -401,7 +401,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         outer.addView(card, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
         volume = new VolumeSlider(this);
         volume.setOnChange(this::onVolumeSlider);
-        LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(px(30), ViewGroup.LayoutParams.MATCH_PARENT);
+        LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(px(75), ViewGroup.LayoutParams.MATCH_PARENT);
         vlp.leftMargin = px(16);
         outer.addView(volume, vlp);
         return outer;
@@ -463,8 +463,56 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
     // ================================================================ Volume
 
-    /** Curseur déplacé : volume média Android (suivi par l'autoradio). */
+    /**
+     * Le curseur règle-t-il le volume de l'autoradio (comme le bouton de façade et la barre de son
+     * Topway) ? Oui dès que TWUtil est là, en radio comme en Bluetooth ; non sur l'émulateur ou si
+     * le MCU n'a pas suivi la commande (on revient alors au volume Android).
+     */
+    private boolean sliderOnMcu() {
+        return hu.available() && hu.volumeCmdWorks != 0;
+    }
+
+    private boolean androidVolumeMaxDone;
+
+    /**
+     * Une fois le volume autoradio confirmé : volume média Android au maximum, une seule fois,
+     * pour que le Bluetooth ne soit pas baissé deux fois et suive le même volume que la radio
+     * (comme l'interface d'origine, où seul le volume autoradio compte).
+     */
+    private void androidVolumeToMax() {
+        if (androidVolumeMaxDone || audio == null || hu.volumeCmdWorks != 1) return;
+        androidVolumeMaxDone = true;
+        try {
+            int m = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int v = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+            if (v < m) {
+                volumeByUs = true;
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, m, 0);
+                lastVolume = m;
+                Journal.log("VOL", "volume Android " + v + " → " + m + "/" + m + " : seul le volume autoradio règle le son");
+            }
+        } catch (Throwable t) {
+            Journal.error("VOL", "volume Android au maximum", t);
+        } finally {
+            volumeByUs = false;
+        }
+    }
+
+    /**
+     * Curseur déplacé. Avec l'autoradio : volume général (MCU 0x0203, le même que le bouton et la
+     * barre de son Topway), qui agit sur la radio et le Bluetooth à la fois. Sans : volume Android.
+     */
     private void onVolumeSlider(int value, boolean done) {
+        if (sliderOnMcu()) {
+            try {
+                hu.setMcuVolume(value, done);
+                if (done) Journal.log("VOL", "volume autoradio réglé à " + value + "/" + hu.mcuVolumeMax
+                        + " (curseur, " + MODE_NAMES[mode] + ")");
+            } catch (Throwable t) {
+                Journal.error("VOL", "réglage du volume autoradio impossible", t);
+            }
+            return;
+        }
         if (audio == null) return;
         try {
             volumeByUs = true;
@@ -576,8 +624,9 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         prefs.edit().putInt("mode", m).apply();
         if (user) {
             if (m == MODE_RADIO) hu.radioOn();
-            else if (m == MODE_BT && hu.available()) hu.requestSource(Tw.SRC_BT); // le son du téléphone vers les haut-parleurs
+            else if (m == MODE_BT && hu.available()) hu.selectBt(); // son du téléphone + reprise de la lecture
         }
+        updateVolumeLabel();
         for (int i = 0; i < 2; i++) {
             boolean sel = i == m;
             modeChips[i].setBackground(new RippleDrawable(ColorStateList.valueOf(0x40FFFFFF),
@@ -684,6 +733,11 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         if (hu.lightsOn != lastLights) {
             lastLights = hu.lightsOn;
             car.setLights(hu.lightsOn);
+        }
+        // Bouton de façade ou barre de son Topway : le curseur suit (radio et Bluetooth).
+        if (sliderOnMcu()) {
+            androidVolumeToMax();
+            updateVolumeLabel();
         }
         refresh();
     }
@@ -1253,7 +1307,14 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
     }
 
     private void updateVolumeLabel() {
-        if (audio == null || volume == null) return;
+        if (volume == null) return;
+        if (sliderOnMcu()) {
+            // Niveau inconnu tant que le bouton n'a pas bougé : milieu, le MCU corrigera.
+            volume.setLevel(hu.mcuVolume >= 0 ? hu.mcuVolume : hu.mcuVolumeMax / 2, hu.mcuVolumeMax);
+            updateBtPill();
+            return;
+        }
+        if (audio == null) return;
         try {
             int v = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
             int m = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
