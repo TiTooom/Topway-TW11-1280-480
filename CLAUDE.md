@@ -36,6 +36,7 @@ Si un journal (`journal.txt` exporté par Outils) contredit un skill, le journal
 | `topway-radio` | Radio FM/AM : commandes 0x401/0x402, messages reçus (non vérifiés sur la voiture) |
 | `topway-systeme` | Matériel, Android, partitions, applis Topway, sécurité, root/ADB, sauvegarde, fuseau horaire |
 | `topway-reverse-engineering` | Extraire une info des APK/framework Topway avec `tools/reverse/` (sans tout lire) |
+| `sandero-obd` | Valeurs du véhicule par module OBD2 ELM327 (Bluetooth/Wi-Fi/USB), écran Outils → OBD2 |
 | `sandero-dev` | Architecture du code, compilation, tests émulateur, journal, garde-fous, thème, **état du projet et historique** |
 
 ## 4. Compiler et tester (résumé, détails dans `sandero-dev`)

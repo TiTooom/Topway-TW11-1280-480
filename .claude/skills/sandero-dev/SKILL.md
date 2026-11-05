@@ -23,6 +23,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 | `ToolsActivity` | Outils : export USB, sauvegardes, explorateur, journal, heure, thème, intégration Topway, caméra |
 | `SystemActivity` | Allègement : mémoire, applis à désactiver, animations, root |
 | `TwMonitorActivity` | Moniteur TWUtil (écoute, simulations) |
+| `Obd`, `ObdPids`, `ObdUsb`, `ObdActivity` | OBD2 par module ELM327 (Bluetooth / Wi-Fi / USB), écran Outils → OBD2 — voir skill `sandero-obd` |
 | `VolumeSlider`, `SeekLine`, `Icon` | Composants dessinés (curseur vertical, progression, icônes vectorielles) |
 | `MediaListener`, `BootReceiver`, `Root` | Accès notifications (MediaSession), démarrage, `su` |
 
@@ -32,7 +33,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 - Couleurs de l'accueil : **toujours `Theme.*`** (text, dim, glass, stroke, track, card*, accent*). Les écrans Outils/Moniteur/Système/caméra restent sombres (`MainActivity.TEXT` etc. = palette nuit fixe).
 - Textes en `setIfChanged` dans ce qui est rafraîchi toutes les 500 ms (évite des mises en page inutiles). Liste des applis chargée hors du fil principal (`appCache`).
 - Chaque action utilisateur, commande MCU, annonce reçue, erreur : `Journal.log(cat, msg)` / `Journal.error`.
-- Préférences : `dock` (`mode` 0 radio / 1 Bluetooth, `slot_N`), `tools` (`tw_enabled`, `bt_channel`, `boot_start`, `wake_front`, `watch_launcher`, `cam_in_sandero`, `cam_id`, `cam_id_auto`, `theme_mode`), `clock` (`tz`, `gps`, `offset`), `safe` (marqueurs, `safe_mode`).
+- Préférences : `dock` (`mode` 0 radio / 1 Bluetooth, `slot_N`), `tools` (`tw_enabled`, `bt_channel`, `boot_start`, `wake_front`, `watch_launcher`, `cam_in_sandero`, `cam_id`, `cam_id_auto`, `theme_mode`), `clock` (`tz`, `gps`, `offset`), `obd` (voir `sandero-obd`), `safe` (marqueurs, `safe_mode`, `obd_bt`, `obd_usb`).
 
 ## Compiler
 ```bash
@@ -54,15 +55,16 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.9 — 4 nov. 2026)
+## État du projet (v0.10 — 4 nov. 2026)
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4) sans coupure du son (Reversing mute décoché) et retour à l'accueil ; appairage Bluetooth (sans canal 8) ; titre BT via 0x9f00 ; journal.
 
 **À vérifier sur la voiture** :
 - v0.7 : son Bluetooth après source 8 ; boutons via 0x9e08 ; transition caméra sans flash noir.
 - v0.8 : pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE_CHANGED et ses valeurs) ; curseur de volume (STREAM_MUSIC agit-il sur le son BT ?) ; source unique Bluetooth.
 - v0.9 : dock Réglages/Applis ; thème jour/nuit et sa bascule ; correction de la vignette (icône taille fixe).
+- v0.10 : OBD2 (Outils → OBD2) : Android voit-il un Bluetooth utilisable (bouton « État du Bluetooth Android ») ? module Wi-Fi / USB ; protocole et PID réels de la Sandero.
 
-**À faire / inconnu** : radio jamais testée ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root non testé.
+**À faire / inconnu** : radio jamais testée ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root non testé ; valeurs OBD sur l'accueil (après validation sur la voiture).
 
 ## Historique des bugs
 | Version | Problème | Cause | Solution |
@@ -75,7 +77,9 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 | 0.6 | Flash noir ~0,9 s avant la caméra | Attente 0,4 s + écran Topway visible | 0.7 : ouverture immédiate + retours devant |
 | 0.7 | BT et Applis séparés, boutons volume, pas de nom de téléphone | — | 0.8 : source unique, `VolumeSlider`, `BtInfo` |
 | 0.8 | Dock redondant ; interface toujours sombre | — | 0.9 : dock 2 cartes ; `Theme` |
+| 0.10 | Pas de données moteur | — | Écran OBD2 (ELM327 BT/Wi-Fi/USB), lecture seule, CSV |
 | 0.9 | Émulateur « rien ne répond » ; logo BT énorme | Émulateur figé (pas Sandero) ; marge fixe calibrée 1280×480 | Cold boot ; `Icon.sized` + `CENTER_INSIDE` |
 
 ## Journal des vérifications
+- 2026-11-04 : v0.10 OBD2 testé sur émulateur avec faux module Wi-Fi (10.0.2.2:35000).
 - 2026-11-04 : v0.9 compilée, testée émulateur 1280×480 et 2400×1080 (nuit et jour).

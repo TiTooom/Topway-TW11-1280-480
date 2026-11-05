@@ -12,6 +12,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Recevoir aussi les annonces Bluetooth Android standard -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- OBD2 : recherche d'un module ELM327 Bluetooth, module Wi-Fi (TCP) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- OBD2 en USB : facultatif, l'appli s'installe aussi sans -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     <!-- Recalage de l'heure sur le GPS -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Service permanent et retour automatique à Sandero -->
@@ -60,6 +67,15 @@
             android:label="Moniteur TWUtil"
             android:exported="false"
             android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|navigation|density|locale" />
+
+        <activity
+            android:name=".ObdActivity"
+            android:label="OBD2"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|navigation|density|locale" />
 
         <activity

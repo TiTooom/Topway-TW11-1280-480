@@ -133,6 +133,16 @@ public class ToolsActivity extends Activity {
                 v -> startActivity(new Intent(this, SystemActivity.class))));
         left.addView(button("Annuler la copie", 0xFF475569, v -> cancel = true));
 
+        // --- Véhicule : valeurs OBD2 (module ELM327)
+        TextView obdT = text(14, MainActivity.TEXT_DIM);
+        obdT.setText("VÉHICULE");
+        obdT.setPadding(0, px(10), 0, px(8));
+        left.addView(obdT);
+        left.addView(button("OBD2 (valeurs du moteur, codes défaut)", 0xFF0369A1, v -> {
+            Journal.log("UI", "Outils → OBD2");
+            startActivity(new Intent(this, ObdActivity.class));
+        }));
+
         // --- Affichage : thème jour / nuit
         TextView th = text(14, MainActivity.TEXT_DIM);
         th.setText("AFFICHAGE");

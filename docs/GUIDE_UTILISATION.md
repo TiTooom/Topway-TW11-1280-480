@@ -42,8 +42,17 @@ Mode **nuit** (interface sombre) de 18 h à 9 h, mode **jour** (tons chauds) le 
 | Affichage | Thème automatique / jour / nuit |
 | Journal et heure | Voir / exporter le journal, fuseau d'affichage, recalage GPS de l'heure |
 | Autoradio | Moniteur TWUtil (messages en direct), intégration Topway, démarrage, retour au premier plan, accès à l'utilisation |
+| Véhicule → OBD2 | Valeurs du moteur en direct, codes défaut, VIN, enregistrement CSV, avec un module OBD2 « ELM327 » (Bluetooth, Wi-Fi ou USB) |
 | Caméra de recul | Activer la caméra dans Sandero, choisir le numéro de caméra, tester |
 | Garde-fous | Après un plantage, l'intégration Topway se coupe toute seule ; bouton « Réactiver » et journal des plantages |
+
+## OBD2 (Outils → Véhicule → OBD2)
+
+1. Brancher le module OBD2 (prise sous le volant), mettre le contact.
+2. **Liaison** : Bluetooth (appairer d'abord le module, code 1234 ou 0000), Wi-Fi (connecter l'autoradio au réseau du module, souvent « WiFi_OBDII ») ou USB.
+3. **Module** : choisir l'appareil, puis **Se connecter**. Seules les valeurs que la voiture annonce s'affichent.
+4. Onglets : **Valeurs** en direct, **Défauts** (voyant moteur, codes), **Infos** (protocole, VIN), **Terminal** (commandes ELM à la main).
+Lecture seule : rien n'est effacé. « Enregistrer en CSV » crée un fichier par session dans `Android/data/fr.sandero.launcher/files/obd/`.
 
 ## En cas de problème
 
