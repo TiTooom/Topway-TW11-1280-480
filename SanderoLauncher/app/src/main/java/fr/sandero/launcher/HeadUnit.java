@@ -194,6 +194,15 @@ final class HeadUnit implements Tw.Listener {
     }
 
     private void onRadioInfo(int kind, int value, Object obj) {
+        // Vu sur la voiture le 06/11/2026 (v0.13) : arg1 = 0, arg2 = 0 et obj = byte[4]
+        // {drapeaux, 0xf8, fréquence haut, fréquence bas} ; fréquence FM en 10 kHz (0x23d7 = 91,75 MHz).
+        if (obj instanceof byte[] && ((byte[]) obj).length >= 4) {
+            byte[] b = (byte[]) obj;
+            radioFlags = b[0] & 0xff;
+            int f = ((b[2] & 0xff) << 8) | (b[3] & 0xff);
+            if (f > 0) radioFreq = f;
+            return;
+        }
         switch (kind) {
             case 0: radioFlags = value; break;
             case 1: radioBand = value; break;
@@ -498,6 +507,8 @@ final class HeadUnit implements Tw.Listener {
     static String formatFreq(int f) {
         if (f <= 0) return "--.-";
         if (f < 3000) return String.valueOf(f);
-        return String.format(java.util.Locale.ROOT, "%.1f", f / 100f);
+        // Pas de 50 kHz sur la voiture : 9175 → « 91.75 », 9340 → « 93.4 ».
+        return f % 10 == 0 ? String.format(java.util.Locale.ROOT, "%.1f", f / 100f)
+                : String.format(java.util.Locale.ROOT, "%.2f", f / 100f);
     }
 }

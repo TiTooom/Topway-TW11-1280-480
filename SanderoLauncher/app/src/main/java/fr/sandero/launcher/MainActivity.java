@@ -848,7 +848,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
     }
 
     private boolean btPlayingSafe() {
-        if (btController != null) {
+        // On ne se fie à la session Topway qu'après l'avoir vue changer d'état : sinon son état peut être figé.
+        if (btController != null && btSessionChanges > 0) {
             PlaybackState s = btController.getPlaybackState();
             if (s != null) return s.getState() == PlaybackState.STATE_PLAYING;
         }
@@ -1092,6 +1093,47 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         controller = null;
     }
 
+    // --- Session média de l'appli Bluetooth Topway (v0.14) : on l'observe et on journalise ce qu'elle expose.
+    private int btSessionChanges;   // nombre de changements d'état vus : 0 = état jamais confirmé, on ne s'y fie pas
+
+    private final MediaController.Callback btCallback = new MediaController.Callback() {
+        @Override public void onPlaybackStateChanged(PlaybackState s) {
+            btSessionChanges++;
+            Journal.log("BT", "session Topway : état " + (s == null ? "null" : s.getState())
+                    + (s == null ? "" : " · position " + s.getPosition() + " · vitesse " + s.getPlaybackSpeed()));
+            refresh();
+        }
+        @Override public void onMetadataChanged(MediaMetadata md) {
+            Journal.log("BT", "session Topway : métadonnées "
+                    + (md == null ? "null" : md.getString(MediaMetadata.METADATA_KEY_TITLE)
+                    + " / " + md.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                    + " / album " + md.getString(MediaMetadata.METADATA_KEY_ALBUM)
+                    + " / pochette " + (md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) != null)));
+            refresh();
+        }
+    };
+
+    private void watchBtSession(MediaController bt) {
+        try {
+            boolean same = bt != null && btController != null
+                    && bt.getSessionToken().equals(btController.getSessionToken());
+            if (same) return;
+            if (btController != null) btController.unregisterCallback(btCallback);
+            btController = bt;
+            btSessionChanges = 0;
+            if (bt != null) {
+                bt.registerCallback(btCallback, handler);
+                PlaybackState s = bt.getPlaybackState();
+                Journal.log("BT", "session Topway trouvée (" + bt.getPackageName() + ") : état initial "
+                        + (s == null ? "null" : s.getState()));
+            } else {
+                Journal.log("BT", "session Topway absente");
+            }
+        } catch (Throwable t) {
+            Journal.error("BT", "observation de la session Topway", t);
+        }
+    }
+
     /** Garde la session qui joue, sinon la plus récente. */
     private void pickController(List<MediaController> list) {
         MediaController best = null;
@@ -1114,8 +1156,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
                 }
             }
         }
-        btController = bt;
-        boolean same = best != null && controller != null
+        watchBtSession(bt);
+        boolean same =best != null && controller != null
                 && best.getSessionToken().equals(controller.getSessionToken());
         if (!same) {
             if (controller != null) controller.unregisterCallback(controllerCallback);

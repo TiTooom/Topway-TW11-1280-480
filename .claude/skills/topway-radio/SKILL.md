@@ -28,3 +28,5 @@ Source : `com.eckom.xtlibrary.twproject.radio.model.RadioModel` / `TWRadio` dans
 
 ## Journal des vérifications
 - (aucune vérification sur la voiture à ce jour) — premier essai : allumer la radio dans Sandero, exporter le journal, vérifier les `[MCU] 0x0401` reçus et le son.
+- 2026-11-06 (v0.13, voiture) : SÛR : write(0x0401,1,0) = recherche vers le haut, (1,1) = vers le bas, rappuyer pendant la recherche l'arrête ; réponse 0x0401 [flags, 0xf8, hi, lo] : flags 0x40 = recherche en cours, 0x00 = arrêtée sur une station ; fréquence = (hi<<8|lo)/100 MHz par pas de 0,05 (0x23d7→91,75 ; 0x247c→93,40 ; 0x24fe→94,70). write(0x0401,5,2) : sans effet visible (arrêt ?). Source radio = 0x0301 arg1=1 (8 vu transitoirement avant, depuis Bluetooth).
+- 2026-11-06 (journal v0.13) : la fréquence n'arrive PAS en (arg1=2, arg2=fréquence) mais en arg1=0, arg2=0 + obj byte[4] {drapeaux, 0xf8, hi, lo} → Sandero affichait « --.- ». Corrigé en v0.14 (HeadUnit.onRadioInfo lit le byte[], formatFreq : 91.75 / 93.4). Bande, nom de station (PS), RDS, présélections (0x0402) : formats réels jamais vus, à relever.
