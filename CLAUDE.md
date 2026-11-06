@@ -23,6 +23,7 @@ Les skills sont la mémoire du projet. **Après chaque modification du code, cha
 2. Mettre à jour `sandero-dev` : **état du projet** (ce qui marche / à vérifier / à faire) et **historique des bugs** (version, problème, cause, solution).
 3. Ajouter une ligne datée dans la section « Journal des vérifications » en bas du skill modifié.
 4. Garder les skills courts et exacts : remplacer une info fausse au lieu d'empiler des contradictions.
+5. **Journal des versions** (`.claude/skills/sandero-dev/VERSIONS.md`) : à chaque nouvelle version (`versionCode` incrémenté), ajouter en haut une entrée « numéro · nom de l'APK · date » avec le **contenu** de la version. À chaque retour de l'utilisateur ou journal de la voiture, compléter l'entrée de la version concernée : **retours**, **marche**, **ne marche pas**, **à corriger** (et dans quelle version c'est corrigé).
 
 Si un journal (`journal.txt` exporté par Outils) contredit un skill, le journal gagne : corriger le skill.
 

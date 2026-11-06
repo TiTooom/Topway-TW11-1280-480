@@ -61,13 +61,15 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
 ## État du projet (v0.13 — 6 nov. 2026)
+Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
+
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
 **À vérifier sur la voiture (v0.13)** :
 - **Volume** : le curseur doit maintenant régler le volume autoradio (0-30) en Radio et en Bluetooth par `write(0x0203, 1, n)` ; chercher `[VOL] le MCU a suivi` après un vrai changement de niveau, puis `volume Android … → 15/15`.
 - Caméra : « Écran Topway » ou « Retour » pendant le recul → plus de boucle, la caméra Sandero ne revient pas avant le point mort (`[CAM] caméra quittée par l'utilisateur`). Plus d'« accueil affiché » au milieu d'un recul.
 - OBD « Chercher la conso » : `service 21 non pris en charge` puis essai de l'en-tête 817AF1, en quelques secondes au lieu de ~70 s.
-- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, 1, n)` (v0.13, lu dans com.tw.service ; l'ancien `write(0x0203, n)` était sans effet) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
+- S'il ne suit pas (`n'a pas renvoyé`), le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
 - Retour Radio → Bluetooth : la musique reprend-elle (`0x9e08 = 5` 0,9 s après) ?
 - Curseur élargi (75 unités au lieu de 30).
 - OBD : connexion auto au démarrage, allumage du Bluetooth Android, reprise après arrêt du moteur, « Chercher la conso » (blocs Renault service 21 dans le journal).
