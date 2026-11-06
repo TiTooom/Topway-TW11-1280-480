@@ -42,9 +42,14 @@ G=$(ls -d ~/.gradle/wrapper/dists/gradle-8.7-bin/*/gradle-8.7)/bin/gradle
 cd SanderoLauncher && "$G" assembleDebug --offline -q
 cp app/build/outputs/apk/debug/app-debug.apk ../release/Sandero.apk
 ```
-Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour par-dessus exigent la **même clé** de signature (clé debug du PC) ; pour des Releases publiques, créer une clé de release (jamais dans le dépôt).
+Cache de configuration Gradle activé (`gradle.properties`, demandé par Android Studio, 06/11). Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour par-dessus exigent la **même clé** de signature (clé debug du PC) ; pour des Releases publiques, créer une clé de release (jamais dans le dépôt).
 
 ## Tester sur émulateur (AVD `Medium_Phone_API_37.0`)
+- **Rendu graphique : `hw.gpu.mode=host`** dans `~/.android/avd/Medium_Phone.avd/config.ini` (Intel Iris Xe). En `auto`, l'émulateur retombait sur SwiftShader (rendu logiciel) : très lent, captures noires. Vérifier : `adb shell "dumpsys SurfaceFlinger | grep ^GLES"` doit citer Intel.
+- Émulateur en veille → Sandero passe aussitôt « accueil masqué » : `adb shell svc power stayon true` + `input keyevent KEYCODE_WAKEUP`.
+- PC à 16 Go : émulateur 2 Go + Android Studio 1,8 Go + navigateurs saturent la mémoire (alertes de performance) ; fermer les navigateurs pendant les essais.
+- Outils = **appui long sur la voiture** de l'accueil ; Moniteur en bas de la colonne de gauche d'Outils (faire défiler). Activités non exportées : pas d'`am start` direct.
+- **Sans Android Studio** : `tools/Emulateur_Sandero.bat` (double-clic) lance l'émulateur en GPU host, installe `release/Sandero.apk`, écran allumé, 1280×480, ouvre Sandero ; une touche remet `wm size/density reset`.
 - Un seul émulateur par AVD : si Android Studio l'a lancé, s'y connecter (`adb devices`) au lieu d'en lancer un autre. Émulateur « offline » = figé → Cold Boot (Device Manager) ou `-no-snapshot-load`.
 - Écran autoradio : `adb shell wm size 1280x480 ; adb shell wm density 160` … puis **`wm size reset ; wm density reset`** à la fin. Tester aussi l'écran par défaut (2400×1080, 420 dpi) : détecte les débordements.
 - `export MSYS_NO_PATHCONV=1` sous Git Bash avant `adb shell` avec des chemins `/sdcard`.
@@ -55,11 +60,13 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.11 — 5 nov. 2026)
+## État du projet (v0.12 — 6 nov. 2026)
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
-**À vérifier sur la voiture (v0.11)** :
-- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, n)` (probable) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
+**À vérifier sur la voiture (v0.12)** :
+- Caméra : « Écran Topway » ou « Retour » pendant le recul → plus de boucle, la caméra Sandero ne revient pas avant le point mort (`[CAM] caméra quittée par l'utilisateur`). Plus d'« accueil affiché » au milieu d'un recul.
+- OBD « Chercher la conso » : `service 21 non pris en charge` puis essai de l'en-tête 817AF1, en quelques secondes au lieu de ~70 s.
+- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, n)` (**sans effet, sûr, 06/11**) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
 - Retour Radio → Bluetooth : la musique reprend-elle (`0x9e08 = 5` 0,9 s après) ?
 - Curseur élargi (75 unités au lieu de 30).
 - OBD : connexion auto au démarrage, allumage du Bluetooth Android, reprise après arrêt du moteur, « Chercher la conso » (blocs Renault service 21 dans le journal).
@@ -90,6 +97,9 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 | 0.10 | OBD : à reconnecter à chaque fois ; « Bluetooth éteint » en boucle | L'autoradio éteint le Bluetooth Android au démarrage ; pas d'option auto | 0.11 : `enable()` à la connexion, pref `auto`, `Obd.autoStart` dans le service |
 | 0.10 | OBD : valeurs figées, 0 requête/s | PID abandonnés pour toujours après 3 NO DATA (moteur coupé) | 0.11 : PID redemandés toutes les 15 s ; 8 s sans réponse → ATPC + nouvelle recherche |
 | 0.10 | OBD : « essence » sur un diesel ; 65535 km / 255 semblent figés | Bit du PID 01 faux sur ce calculateur ; compteurs plafonnés par la norme | 0.11 : bit masqué ; « (plafond) » |
+| 0.11 | Caméra : boucle caméra / accueil / écran Topway après « Écran Topway » | 0x020b (envoyé par l'écran Topway, 0x9f1c toujours à 1) pris pour la fin du recul ; retours à l'accueil différés qui recouvraient la caméra suivante | 0.12 : 0x020b/0x020c ignorés ; choix de l'utilisateur respecté jusqu'au point mort (`ReverseCamActivity.dismissed`) ; `bringToFront` et retour accueil bloqués en marche arrière |
+| 0.11 | OBD : recherche conso ~70 s pour rien | `7F 21 11` (service inconnu) pris pour une réponse → 255 blocs interrogés ; en-tête 817AF1 laissé en place s'il échouait | 0.12 : `service21()` (code 11 = refus, autres codes = service présent), session 10C0 seulement si `50` reçu ; en-tête remis dès qu'il a été changé |
+| 0.12 | Voiture de l'accueil redevenue le rendu 3D gris | `car_photo.png` non versionnée, perdue quand `drawable-nodpi/` a été recréé (06/11 8 h 01) → secours `car_34.png` | Photo extraite de `V5_3D+slider.apk` (racine) : `unzip -p V5_3D+slider.apk res/drawable-nodpi-v4/car_photo.png > …/drawable-nodpi/car_photo.png`. **Avant chaque APK livré, vérifier qu'elle est là** (`unzip -l … \| grep car_photo`) |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -99,3 +109,7 @@ Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour
 - 2026-11-05 : journal voiture v0.10 analysé (voir les bugs 0.10 ci-dessus) ; v0.11 compilée, accueil vérifié sur émulateur 1280×480 (curseur élargi).
 - 2026-11-04 : v0.10 OBD2 testé sur émulateur avec faux module Wi-Fi (10.0.2.2:35000).
 - 2026-11-04 : v0.9 compilée, testée émulateur 1280×480 et 2400×1080 (nuit et jour).
+- 2026-11-06 (v0.11, journal) : bugs relevés : (1) `write(0x0203, n)` sans effet → curseur retombé sur le volume Android 0-15, indépendant du volume autoradio 0-30 ; (2) 0x020b traité comme fin de recul → boucle caméra après « Écran Topway » ; (3) recherche conso : 7F 21 11 / 7F 10 11 (service non pris en charge) pris pour une réponse → balayage inutile de 255 blocs (~70 s). Corrigés en 0.11 : export journal 0 o, Bluetooth Android allumé automatiquement par l'OBD.
+- 2026-11-06 : v0.12 compilée (bugs caméra 0x020b et recherche conso corrigés), non testée sur émulateur (TWUtil absent : caméra Topway et OBD réel non simulables).
+- 2026-11-06 : v0.12 testée sur émulateur 1280×480 (GPU host) : marche arrière simulée → caméra ; « Écran Topway » → caméra non ramenée (`caméra quittée par l'utilisateur`) ; point mort → accueil ; nouveau recul → caméra rouverte. OK.
+- 2026-11-06 : car_photo.png restaurée depuis V5_3D+slider.apk, v0.12 recompilée, accueil vérifié sur émulateur 1280×480 (photo).

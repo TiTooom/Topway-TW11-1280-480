@@ -66,6 +66,30 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
 
     private static volatile boolean front;
 
+    /**
+     * L'utilisateur a quitté la caméra lui-même (Retour, Écran Topway) pendant ce recul :
+     * le service ne la ramène plus devant jusqu'à la fin du recul (0x9f1c = 0).
+     */
+    private static volatile boolean dismissed;
+
+    static boolean dismissedByUser() {
+        return dismissed;
+    }
+
+    /** Fin du recul : la prochaine marche arrière rouvre la caméra normalement. */
+    static void resetDismissed() {
+        dismissed = false;
+    }
+
+    /** Fermeture choisie par l'utilisateur (bouton). */
+    private void leaveByUser(boolean home) {
+        if (!test && hu != null && hu.reverse) {
+            dismissed = true;
+            Journal.log("CAM", "caméra quittée par l'utilisateur : plus ramenée devant jusqu'à la fin du recul");
+        }
+        leave(home);
+    }
+
     /** La fenêtre caméra est-elle affichée devant (et pas recouverte par l'écran Topway) ? */
     static boolean isFront() {
         return front;
@@ -165,7 +189,7 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
 
     @Override
     public void onBackPressed() {
-        leave(!test);
+        leaveByUser(!test);
     }
 
     /** Ferme la fenêtre ; {@code home} : revenir explicitement à l'accueil Sandero. */
@@ -178,6 +202,8 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
             final android.content.Context app = getApplicationContext();
             HOME.postDelayed(() -> {
                 try {
+                    // Marche arrière ré-enclenchée entre-temps : ne pas recouvrir la nouvelle caméra.
+                    if (HeadUnit.get().reverse && !dismissed) return;
                     app.startActivity(new Intent(app, MainActivity.class)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
                 } catch (RuntimeException ignored) {
@@ -208,7 +234,7 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
         time.setIncludeFontPadding(false);
         head.addView(time, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView back = pillButton("Retour", 0x33FFFFFF);
-        back.setOnClickListener(v -> leave(!test));
+        back.setOnClickListener(v -> leaveByUser(!test));
         head.addView(back);
         left.addView(head);
 
@@ -235,7 +261,7 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
         next.setOnClickListener(v -> nextCamera(true));
         tools2.addView(next);
         TextView stock = pillButton("Écran Topway", 0x33FFFFFF);
-        stock.setOnClickListener(v -> leave(false));
+        stock.setOnClickListener(v -> leaveByUser(false));
         LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, px(40));
         slp.leftMargin = px(8);
         tools2.addView(stock, slp);

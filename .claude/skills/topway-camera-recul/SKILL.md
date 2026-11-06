@@ -32,3 +32,5 @@ description: Caméra de recul de l'autoradio Topway et sa reprise dans Sandero (
 - 2026-11-04 v0.6 (voiture) : caméra 4 OK, son conservé (Reversing mute décoché), retour accueil OK, flash noir ~0,9 s.
 - 2026-11-04 v0.7 (émulateur) : fenêtre ouverte 30 ms après la marche arrière simulée.
 - 2026-11-05 v0.10 (voiture, 3 marches arrière) : fenêtre ouverte ~150 ms après 0x9f1c, caméra 4 image OK (luminosité 71–108 de jour), **son conservé** avec « Inverse le muet » = open, retour accueil OK. 0x9f1c répété toutes les 500 ms confirmé (×39 en 20 s).
+- 2026-11-06 (v0.11, voiture) : bouton « Écran Topway » → l'écran Topway envoie 0x020b (arg1=1) alors que 0x9f1c reste à 1 ; Sandero le prenait pour la fin du recul puis rouvrait sa caméra au 0x9f1c suivant → boucle caméra / accueil / écran Topway. Après la dernière vérification (≈ 2 s), une fenêtre caméra recouverte n'est plus ramenée tant que 0x9f1c reste à 1.
+- 2026-11-06 (v0.12) : 0x020b/0x020c ignorés (seul 0x9f1c = 0 termine le recul) ; « Retour » / « Écran Topway » pendant le recul : la caméra Sandero n'est plus ramenée jusqu'au point mort.

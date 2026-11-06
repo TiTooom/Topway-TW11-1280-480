@@ -55,6 +55,7 @@ docs/GUIDE_UTILISATION.md  guide rapide de l'interface
 docs/images/               captures
 SanderoLauncher/           code Android (Java pur, sans AndroidX, minSdk 21, targetSdk 27)
 tools/Sauvegarde_ADB.bat   image des partitions depuis le PC (adb root)
+tools/Emulateur_Sandero.bat  émulateur 1280×480 + Sandero, sans Android Studio
 tools/reverse/             scripts d'analyse dexdump (voir skill topway-reverse-engineering)
 tools/car3d/               rendu de la voiture de l'accueil depuis 3D/Sandero.stl (voir son README)
 3D/                        modèle 3D de la Sandero (STL)

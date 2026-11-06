@@ -156,8 +156,9 @@ final class HeadUnit implements Tw.Listener {
                 break;
             case 0x020b:
             case 0x020c:
-                reverse = false; // fin d'écran de recul (variantes Topway)
-                break;
+                // Envoyé par l'écran de recul Topway alors que 0x9f1c reste à 1 (vu le 06/11/2026) :
+                // ce n'est PAS une fin de recul. Seul 0x9f1c = 0 compte.
+                return;
             case 0x9f00:
                 // Titre envoyé par l'appli Bluetooth Topway à l'afficheur (arg1 = 8) : lu sans ouvrir son canal.
                 if (arg1 == Tw.SRC_BT && obj instanceof String) {

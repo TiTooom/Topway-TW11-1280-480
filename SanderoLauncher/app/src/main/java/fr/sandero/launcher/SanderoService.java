@@ -112,6 +112,7 @@ public class SanderoService extends Service implements HeadUnit.Listener {
         lastReverse = hu.reverse;
         Journal.log("SVC", "marche arrière " + (hu.reverse ? "ENCLENCHÉE" : "relâchée"));
         if (!hu.reverse) {
+            ReverseCamActivity.resetDismissed();
             // Point mort : on ferme la caméra Sandero et on revient à l'accueil, quoi qu'il arrive.
             // Si la fenêtre caméra était ouverte, elle ramène elle-même l'accueil (une seule fois).
             boolean wasOpen = ReverseCamActivity.closeIfOpen();
@@ -136,7 +137,7 @@ public class SanderoService extends Service implements HeadUnit.Listener {
     private final Runnable camFront = new Runnable() {
         @Override
         public void run() {
-            if (!hu.reverse) return;
+            if (!hu.reverse || ReverseCamActivity.dismissedByUser()) return;
             if (!ReverseCamActivity.isFront()) showCam("fenêtre recouverte, retour devant");
             if (camAttempt < CAM_CHECKS.length) handler.postDelayed(this, CAM_CHECKS[camAttempt++]);
         }
@@ -167,6 +168,8 @@ public class SanderoService extends Service implements HeadUnit.Listener {
     };
 
     private void bringToFront() {
+        // En marche arrière, la caméra a la priorité (sauf si l'utilisateur l'a quittée).
+        if (hu.reverse && !ReverseCamActivity.dismissedByUser()) return;
         Journal.log("SVC", "retour au premier plan de Sandero");
         Intent i = new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);

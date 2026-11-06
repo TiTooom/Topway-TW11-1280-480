@@ -866,32 +866,38 @@ final class Obd {
         // --- Calculateur Renault (service 21)
         setState(RUNNING, "Recherche de la conso : calculateur Renault…");
         String header = null;
-        boolean session = false;
+        boolean session = false, customHeader = false;
         for (String h : new String[]{"", "817AF1"}) {
             if (!alive()) return found;
-            if (!h.isEmpty()) cmd("ATSH" + h, 2000);
+            if (!h.isEmpty()) {
+                cmd("ATSH" + h, 2000);
+                customHeader = true;
+            }
             String r = cmd("2180", 3000);
             String one = oneLine(r);
             rep.append("en-tête ").append(h.isEmpty() ? "standard" : h).append(" · 2180 → ").append(one).append('\n');
             Journal.log("OBD", "recherche conso : en-tête " + (h.isEmpty() ? "standard" : h) + " · 2180 → " + one);
-            List<int[]> ms = messages(r, "2180");
-            boolean refused = false, ok = false;
-            for (int[] m : ms) {
-                if (m.length >= 2 && m[0] == 0x61) ok = true;
-                if (m.length >= 2 && m[0] == 0x7F && m[1] == 0x21) refused = true;
-            }
-            if (refused && !ok) {
-                String s = oneLine(cmd("10C0", 3000));
+            // Réponse 7F 21 xx : refus. Code 11 = service inconnu du calculateur (inutile d'insister) ;
+            // les autres codes (12, 22, 31, 33…) montrent que le service 21 existe.
+            int st = service21(messages(r, "2180"));
+            if (st == 0) {
+                String sr = cmd("10C0", 3000);
+                String s = oneLine(sr);
                 Journal.log("OBD", "recherche conso : ouverture de session 10C0 → " + s);
                 rep.append("10C0 → ").append(s).append('\n');
-                session = true;
-                ok = refused = false;
-                for (int[] m : messages(cmd("2180", 3000), "2180")) if (m.length >= 2 && (m[0] == 0x61 || m[0] == 0x7F)) ok = true;
+                boolean sessionOk = false;
+                for (int[] m : messages(sr, "10C0")) if (m.length >= 1 && m[0] == 0x50) sessionOk = true;
+                if (sessionOk) {
+                    session = true;
+                    st = service21(messages(cmd("2180", 3000), "2180"));
+                }
             }
-            if (ok || refused) {
+            if (st > 0) {
                 header = h;
                 break;
             }
+            Journal.log("OBD", "recherche conso : service 21 non pris en charge (en-tête "
+                    + (h.isEmpty() ? "standard" : h) + ")");
         }
         int blocks = 0;
         if (header == null) {
@@ -918,7 +924,7 @@ final class Obd {
         // Retour à l'état normal
         try {
             if (session) cmd("1081", 3000);
-            if (header != null && !header.isEmpty()) cmd("ATSHC133F1", 2000);
+            if (customHeader) cmd("ATSHC133F1", 2000);
         } catch (IOException e) {
             Journal.log("OBD", "recherche conso : retour à l'état normal : " + e.getMessage());
         }
@@ -927,6 +933,22 @@ final class Obd {
         probeReport = rep.toString();
         Journal.log("OBD", "recherche conso : fin · PID standard trouvés : " + (found.isEmpty() ? "aucun" : pidList(found)));
         return found;
+    }
+
+    /**
+     * Réponse au service 21 : 1 pris en charge (61 …, ou refus autre que « service inconnu »),
+     * 0 refusé (7F 21 11 : service non pris en charge), -1 pas de réponse.
+     */
+    private static int service21(List<int[]> ms) {
+        int st = -1;
+        for (int[] m : ms) {
+            if (m.length >= 1 && m[0] == 0x61) return 1;
+            if (m.length >= 2 && m[0] == 0x7F && m[1] == 0x21) {
+                if (m.length >= 3 && m[2] != 0x11) return 1;
+                st = 0;
+            }
+        }
+        return st;
     }
 
     /** Consommation : 5E (L/h), sinon A2 (mg par coup), sinon débit d'air (essence/GPL). */
