@@ -28,9 +28,9 @@ description: API interne Topway android.tw.john.TWUtil (canaux, open/addHandler/
 | **0x0301** | Source audio active : 0 au démarrage, 1 radio, 3 média Android, 8 Bluetooth | **sûr (vu)** |
 | 0x0302 | arg1 = 0 au démarrage / extinction | inconnu |
 | 0x0201 | Touches (arg1 : 1 pause, 3 suivant, 4 précédent, 5 lecture, 6 pause, 9 avance, 10 retour) | probable |
-| **0x0203** | **Volume général** (bouton de façade) : arg1 = niveau, arg2 = 0x8000001E (bas = 30 = maximum). Le bouton fait monter arg1 de 17 à 29 pas à pas. arg1 = 0 au démarrage tant que le volume n'a pas bougé (pas le vrai niveau). Le volume Android (STREAM_MUSIC) ne le change pas et n'agit pas sur la radio. C'est le volume de la barre de son Topway, commun à toutes les sources. Réglage par Sandero (curseur de l'accueil, radio et Bluetooth) : `write(0x0203, niveau)` **sans effet (sûr, v0.11, 06/11 : demandé 29 puis 30, le MCU reste à 15)** ; la vraie commande d'écriture reste à trouver ; `write(0x0203, 0xff)` = demande d'état (appli Radio) | lecture **sûr (vu 05/11)**, écriture probable |
+| **0x0203** | **Volume général** (bouton de façade, barre de son Topway, toutes sources). **Reçu** (lu dans `com.tw.service.B.handleMessage`) : `arg1 & 0x7fffffff` = niveau, bit 31 de arg1 = sourdine ; `arg2 & 0x7fffffff` = maximum (30), bit 31 de arg2 = afficher la barre de son. Vu : arg2 = 0x8000001E. arg1 = 0 au démarrage tant que le volume n'a pas bougé. Le volume Android (STREAM_MUSIC) ne le change pas. **Envoi** (barre de son Topway, `com.tw.service.s.onProgressChanged`) : `write(0x0203, 1, niveau)` ; sourdine (`com.tw.service.r.onClick`) : `write(0x0203, 0, 1)` / `write(0x0203, 0, 0)`. `write(0x0203, niveau)` à 2 valeurs = **sans effet** (sûr, 06/11). `write(0x0203, 0xff)` = demande d'état (appli Radio) | lecture **sûr** ; écriture lue dans le code, à vérifier sur la voiture (v0.13) |
 | 0x0205 | Frein à main (arg1 = 1 au démarrage) | probable (vu) |
-| 0x020b / 0x020c | Envoyé autour de l'écran de recul Topway, **pas une fin de recul** : vu le 06/11 (v0.11) avec arg1 = 1 puis 0 alors que 0x9f1c restait à 1. Ne pas s'en servir pour « marche arrière relâchée » | sûr (vu) |
+| 0x020b / 0x020c | Ne sert qu'aux écrans de recul variantes : 0x020b ferme `ReverseNissanActivity` (classe `ah`), 0x020c `LRReverseActivity` (classe `ae`). Reçu sur la voiture le 06/11 avec arg1 = 1 / 0 alors que 0x9f1c restait à 1 : **pas une fin de recul**, ignoré par Sandero (v0.12) | sûr |
 | **0x0304** | Vidéo de recul : écrit par l'écran Topway, 1 à l'affichage, 0 à la fermeture | **sûr (code + voiture)** |
 | 0x0401–0x0406 | Radio (voir `topway-radio`) | probable |
 | 0x0501, 0x0506, 0x0507, 0x050e | Données CAN / lignes de guidage caméra | probable |
@@ -57,9 +57,19 @@ Abonnements relevés dans les applis Topway (utile pour deviner un id) :
 ## Vérifier une hypothèse
 Outils → **Moniteur TWUtil** (écoute le canal de Sandero, boutons « Simuler phares / marche arrière »), puis Outils → **Exporter le journal**. Chercher les lignes `[MCU]`.
 
+## Messages traités par `com.tw.service` (B.handleMessage, relevé du 06/11/2026)
+0x0102 0x0104 0x0106 0x010a 0x010b 0x0112 · 0x0201 0x0202 0x0203 0x0204 0x0205 · 0x0301 0x0302 · 0x0404 · 0x0501 0x0505 0x0507 0x0508 0x0509 0x050e · 0x0909 · 0x8201 · 0x9e00 0x9e11 · 0x9f00 0x9f10 0x9f1b 0x9f1c · 0xff00–0xff14, 0xfff8–0xfffa (messages internes).
+- 0x0204 : arg1 == 1 → mode nuit ; une autre valeur d'arg1 porte un octet dans arg2 (bit 0x80 testé, sens inconnu).
+- 0x9f1b : arg1 = 0 → met le volume Android STREAM_MUSIC à 0/1 (sourdine logicielle, probable : appel ou coupure). Jamais vu sur la voiture.
+- 0x9f10 : extinction (`SHUTDOWN:` dans le journal Topway), arg2 = délai (3000 vu).
+- 0x8201, 0x0201, 0x0202 : cas vides (rien fait) dans TWService.
+- 0x9e00 : enregistre l'appli audio active (arg1 = 7 AUX, 8 BT ; +128 à la fermeture).
+
 ## Journal des vérifications
 - 2026-11-04 (v0.6, voiture) : 0x9f1c 1/0 et répétition 500 ms, 0x0301 = 3 après demande, 0x9f00 titres, 0x9e00 8/136, 0x9f10 arg2 3000, 0x0203 constant. 0x0204 jamais reçu (feux éteints pendant l'essai ?).
 - 2026-11-05 (v0.10, voiture) : 0x0203 = volume (arg1 12→15, 17→29 au bouton). 0x0301 = 1 après demande radio, 8 après BT ; bouton ⏻ radio → 0x0301 = 0. 0x9e00 arg1 = 8 / 136 à l'ouverture / fermeture de com.tw.bt, 131 au démarrage. 0x8201 arg1=1 arg2=16 au retour sur l'accueil (sens inconnu). 0x0302 arg1=0 et 0x9f10 arg2=3000 à l'extinction. 0x0204 toujours jamais reçu (essais de jour).
 - 2026-11-05 : recherche ciblée dans com.tw.service (commande d'écriture du volume) acceptée par l'utilisateur mais **bloquée par la règle deny de `.claude/settings.json`** ; non faite. À refaire si l'écho `write(0x0203, n)` ne marche pas.
 - 2026-11-06 (v0.11, voiture) : `write(0x0203, 29/30)` sans écho, volume MCU resté à 15 → commande sans effet. 0x020b arg1=1/0 reçu pendant la marche arrière (0x9f1c=1) après passage sur l'écran Topway. 0x8201 arg1=1 arg2=16 = touche accueil de la façade (probable : suivi à chaque fois de « accueil affiché »). 0x9e00 arg1 = 7 / 135 à l'ouverture / fermeture de com.tw.auxin.
 - 2026-11-06 : recherche de la commande d'écriture du volume dans com.tw.service autorisée et règle deny levée, mais **aucun APK Topway sur le PC** (`APP From autoradio/` ne contient que README.md) ; règle remise. À refaire après Outils → « Exporter toutes les applis (APK) » (besoin : com.tw.service, et si possible com.tw.radio pour comparaison).
+- 2026-11-06 (voiture, 12:23) : write(0x0203, 8) encore sans effet (MCU reste à 15) : 3e confirmation.
+- 2026-11-06 : `com.tw.service` désassemblé (APK fourni par l'utilisateur, accès ouvert une fois) : commande volume `write(0x0203, 1, n)`, sourdine `write(0x0203, 0, 0/1)`, décodage de 0x0203 reçu, rôle de 0x020b/0x020c, liste des messages traités.

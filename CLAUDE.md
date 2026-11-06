@@ -42,7 +42,7 @@ Si un journal (`journal.txt` exporté par Outils) contredit un skill, le journal
 ## 4. Compiler et tester (résumé, détails dans `sandero-dev`)
 
 - JDK : `~/.jdks/jbr-21.0.11` (le Java d'Android Studio est en 25, trop récent pour Gradle 8.7).
-- `cd SanderoLauncher && gradle assembleDebug --offline` (Gradle 8.7 du cache `~/.gradle/wrapper/dists`), APK dans `app/build/outputs/apk/debug/`, copie dans `release/Sandero.apk`.
+- `cd SanderoLauncher && gradle assembleDebug --offline` (Gradle 8.7 du cache `~/.gradle/wrapper/dists`), APK dans `app/build/outputs/apk/debug/`, **copié automatiquement** (tâche Gradle `copySanderoApk`) en `release/Sandero_VXXX.apk`, XXX = `versionCode` sur 3 chiffres (ex. versionCode 13 → `Sandero_V013.apk`). Toujours livrer sous ce nom.
 - Émulateur : `adb shell wm size 1280x480` + `wm density 160` pour reproduire l'écran de l'autoradio ; **toujours** remettre `wm size reset` / `wm density reset` à la fin. TWUtil n'existe pas sur l'émulateur : radio/Bluetooth/caméra Topway ne se vérifient que sur la voiture (Moniteur → Simuler phares / marche arrière).
 - Incrémenter `versionCode` / `versionName` dans `SanderoLauncher/app/build.gradle` à chaque version livrée.
 
@@ -59,7 +59,7 @@ tools/Emulateur_Sandero.bat  émulateur 1280×480 + Sandero, sans Android Studio
 tools/reverse/             scripts d'analyse dexdump (voir skill topway-reverse-engineering)
 tools/car3d/               rendu de la voiture de l'accueil depuis 3D/Sandero.stl (voir son README)
 3D/                        modèle 3D de la Sandero (STL)
-release/                   APK compilé (non versionné : publier en Release GitHub)
+release/                   Sandero_VXXX.apk compilés (non versionnés : publier en Release GitHub)
 APP From autoradio/        APK récupérés sur l'autoradio  — NON VERSIONNÉ, NE PAS LIRE
 INFOS From autoradio/      infos système, config, manuel — NON VERSIONNÉ, NE PAS LIRE
 .claude/skills/            connaissances du projet (à faire évoluer)

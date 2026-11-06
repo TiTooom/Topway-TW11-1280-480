@@ -266,17 +266,24 @@ final class HeadUnit implements Tw.Listener {
 
     // ================================================================ Volume de l'autoradio (MCU)
 
-    // 0x0203 : arg1 = niveau du volume général (bouton de façade), arg2 & 0xff = maximum (30).
-    // Vu sur la voiture le 05/11/2026 (le bouton fait monter arg1 de 17 à 29). Au démarrage arg1
-    // vaut 0 tant que personne n'a touché au volume : 0 n'est pris que si un vrai niveau a déjà été vu.
+    // 0x0203 reçu (lu dans com.tw.service, B.handleMessage, 06/11/2026) :
+    //   arg1 & 0x7fffffff = niveau, bit 31 de arg1 = sourdine ;
+    //   arg2 & 0x7fffffff = maximum (30), bit 31 de arg2 = afficher la barre de son Topway.
+    // Envoi (barre de son Topway, com.tw.service.s / r) : write(0x0203, 1, niveau) règle le volume,
+    // write(0x0203, 0, 1 / 0) met / enlève la sourdine. Au démarrage arg1 vaut 0 tant que personne
+    // n'a touché au volume : 0 n'est pris que si un vrai niveau a déjà été vu.
     int mcuVolume = -1, mcuVolumeMax = 30;
     private int volumeAsked = -1;
     private long volumeAskedAt;
     private int volumeChecks;
     private final android.os.Handler main0 = new android.os.Handler(android.os.Looper.getMainLooper());
 
-    private void onMcuVolume(int level, int flags) {
-        int max = flags & 0xff;
+    boolean mcuMuted;
+
+    private void onMcuVolume(int a1, int flags) {
+        mcuMuted = (a1 & 0x80000000) != 0;
+        int level = a1 & 0x7fffffff;
+        int max = flags & 0x7fffffff;
         if (max >= 10 && max <= 60) mcuVolumeMax = max;
         if (level < 0 || level > mcuVolumeMax) return;
         if (level == 0 && mcuVolume < 0) return;
@@ -294,21 +301,23 @@ final class HeadUnit implements Tw.Listener {
     int volumeCmdWorks = -1;
 
     /**
-     * Règle le volume général de l'autoradio (celui du bouton, qui agit sur la radio).
-     * Commande probable (déduite du journal, pas du code Topway) : write(0x0203, niveau).
+     * Règle le volume général de l'autoradio (celui du bouton et de la barre de son Topway).
+     * Commande lue dans com.tw.service (barre de son) : write(0x0203, 1, niveau).
      * Vérifiée à chaque fois : si le MCU ne renvoie pas le même niveau, c'est noté au journal.
      */
     void setMcuVolume(int level, boolean done) {
         if (!available()) return;
         level = Math.max(0, Math.min(level, mcuVolumeMax));
         try {
-            main.write(Tw.MSG_MUTE, level);
+            main.write(Tw.MSG_MUTE, 1, level);
         } catch (Throwable t) {
             Journal.error("VOL", "write(0x0203)", t);
             return;
         }
         if (!done) return;
-        Journal.log("VOL", "volume autoradio demandé : write(0x0203, " + level + ")");
+        Journal.log("VOL", "volume autoradio demandé : write(0x0203, 1, " + level + ")");
+        // Niveau déjà en place : l'écho du MCU ne prouverait rien (faux « le MCU a suivi » vu le 06/11).
+        if (level == mcuVolume) return;
         volumeAsked = level;
         volumeAskedAt = SystemClock.elapsedRealtime();
         final int asked = level;
@@ -317,7 +326,7 @@ final class HeadUnit implements Tw.Listener {
                 volumeAsked = -1;
                 volumeCmdWorks = 0;
                 Journal.log("VOL", "le MCU n'a pas renvoyé le volume " + asked + " (reçu " + mcuVolume
-                        + ") : commande write(0x0203, n) sans effet ?");
+                        + ") : commande write(0x0203, 1, n) sans effet ?");
             }
         }, 1500);
     }

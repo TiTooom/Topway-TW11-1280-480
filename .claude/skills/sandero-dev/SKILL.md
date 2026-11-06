@@ -40,7 +40,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 export JAVA_HOME="$(cd ~/.jdks/jbr-21.0.11 && pwd -W)"      # JDK 21 ; le jbr d'Android Studio est en 25 → « Unsupported class file major version 69 »
 G=$(ls -d ~/.gradle/wrapper/dists/gradle-8.7-bin/*/gradle-8.7)/bin/gradle
 cd SanderoLauncher && "$G" assembleDebug --offline -q
-cp app/build/outputs/apk/debug/app-debug.apk ../release/Sandero.apk
+# copie automatique : release/Sandero_VXXX.apk (XXX = versionCode sur 3 chiffres, tâche copySanderoApk)
 ```
 Cache de configuration Gradle activé (`gradle.properties`, demandé par Android Studio, 06/11). Incrémenter `versionCode`/`versionName` (`app/build.gradle`). Les mises à jour par-dessus exigent la **même clé** de signature (clé debug du PC) ; pour des Releases publiques, créer une clé de release (jamais dans le dépôt).
 
@@ -49,7 +49,7 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Émulateur en veille → Sandero passe aussitôt « accueil masqué » : `adb shell svc power stayon true` + `input keyevent KEYCODE_WAKEUP`.
 - PC à 16 Go : émulateur 2 Go + Android Studio 1,8 Go + navigateurs saturent la mémoire (alertes de performance) ; fermer les navigateurs pendant les essais.
 - Outils = **appui long sur la voiture** de l'accueil ; Moniteur en bas de la colonne de gauche d'Outils (faire défiler). Activités non exportées : pas d'`am start` direct.
-- **Sans Android Studio** : `tools/Emulateur_Sandero.bat` (double-clic) lance l'émulateur en GPU host, installe `release/Sandero.apk`, écran allumé, 1280×480, ouvre Sandero ; une touche remet `wm size/density reset`.
+- **Sans Android Studio** : `tools/Emulateur_Sandero.bat` (double-clic) lance l'émulateur en GPU host, installe le plus récent `release/Sandero_V*.apk`, écran allumé, 1280×480, ouvre Sandero ; une touche remet `wm size/density reset`.
 - Un seul émulateur par AVD : si Android Studio l'a lancé, s'y connecter (`adb devices`) au lieu d'en lancer un autre. Émulateur « offline » = figé → Cold Boot (Device Manager) ou `-no-snapshot-load`.
 - Écran autoradio : `adb shell wm size 1280x480 ; adb shell wm density 160` … puis **`wm size reset ; wm density reset`** à la fin. Tester aussi l'écran par défaut (2400×1080, 420 dpi) : détecte les débordements.
 - `export MSYS_NO_PATHCONV=1` sous Git Bash avant `adb shell` avec des chemins `/sdcard`.
@@ -60,13 +60,14 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.12 — 6 nov. 2026)
+## État du projet (v0.13 — 6 nov. 2026)
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
-**À vérifier sur la voiture (v0.12)** :
+**À vérifier sur la voiture (v0.13)** :
+- **Volume** : le curseur doit maintenant régler le volume autoradio (0-30) en Radio et en Bluetooth par `write(0x0203, 1, n)` ; chercher `[VOL] le MCU a suivi` après un vrai changement de niveau, puis `volume Android … → 15/15`.
 - Caméra : « Écran Topway » ou « Retour » pendant le recul → plus de boucle, la caméra Sandero ne revient pas avant le point mort (`[CAM] caméra quittée par l'utilisateur`). Plus d'« accueil affiché » au milieu d'un recul.
 - OBD « Chercher la conso » : `service 21 non pris en charge` puis essai de l'en-tête 817AF1, en quelques secondes au lieu de ~70 s.
-- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, n)` (**sans effet, sûr, 06/11**) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
+- Curseur = **volume général de l'autoradio** (comme le bouton et la barre de son Topway), en Radio **et** en Bluetooth, par `write(0x0203, 1, n)` (v0.13, lu dans com.tw.service ; l'ancien `write(0x0203, n)` était sans effet) : chercher `[VOL] le MCU a suivi` ou `n'a pas renvoyé`. Confirmé → volume Android mis au maximum une fois (`volume Android … → 15/15`). S'il ne suit pas, le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
 - Retour Radio → Bluetooth : la musique reprend-elle (`0x9e08 = 5` 0,9 s après) ?
 - Curseur élargi (75 unités au lieu de 30).
 - OBD : connexion auto au démarrage, allumage du Bluetooth Android, reprise après arrêt du moteur, « Chercher la conso » (blocs Renault service 21 dans le journal).
@@ -99,6 +100,8 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 | 0.10 | OBD : « essence » sur un diesel ; 65535 km / 255 semblent figés | Bit du PID 01 faux sur ce calculateur ; compteurs plafonnés par la norme | 0.11 : bit masqué ; « (plafond) » |
 | 0.11 | Caméra : boucle caméra / accueil / écran Topway après « Écran Topway » | 0x020b (envoyé par l'écran Topway, 0x9f1c toujours à 1) pris pour la fin du recul ; retours à l'accueil différés qui recouvraient la caméra suivante | 0.12 : 0x020b/0x020c ignorés ; choix de l'utilisateur respecté jusqu'au point mort (`ReverseCamActivity.dismissed`) ; `bringToFront` et retour accueil bloqués en marche arrière |
 | 0.11 | OBD : recherche conso ~70 s pour rien | `7F 21 11` (service inconnu) pris pour une réponse → 255 blocs interrogés ; en-tête 817AF1 laissé en place s'il échouait | 0.12 : `service21()` (code 11 = refus, autres codes = service présent), session 10C0 seulement si `50` reçu ; en-tête remis dès qu'il a été changé |
+| 0.11–0.12 | Curseur sans effet sur le volume autoradio (bloqué à 15/30) | Commande devinée `write(0x0203, n)` (2 valeurs) ; la barre Topway envoie `write(0x0203, 1, n)` (lu dans com.tw.service) ; bit 31 de arg1 (sourdine) non masqué | 0.13 : `write(0x0203, 1, n)`, niveau = arg1 & 0x7fffffff, `mcuMuted` = bit 31 |
+| 0.12 | « le MCU a suivi » alors que la commande volume ne marche pas → volume Android forcé à 15/15 | Curseur demandé = volume déjà en place (15) : l'écho périodique 0x0203=15 pris pour une réponse | Pas de vérification d'écho si le niveau demandé = niveau actuel |
 | 0.12 | Voiture de l'accueil redevenue le rendu 3D gris | `car_photo.png` non versionnée, perdue quand `drawable-nodpi/` a été recréé (06/11 8 h 01) → secours `car_34.png` | Photo extraite de `V5_3D+slider.apk` (racine) : `unzip -p V5_3D+slider.apk res/drawable-nodpi-v4/car_photo.png > …/drawable-nodpi/car_photo.png`. **Avant chaque APK livré, vérifier qu'elle est là** (`unzip -l … \| grep car_photo`) |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
@@ -113,3 +116,5 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - 2026-11-06 : v0.12 compilée (bugs caméra 0x020b et recherche conso corrigés), non testée sur émulateur (TWUtil absent : caméra Topway et OBD réel non simulables).
 - 2026-11-06 : v0.12 testée sur émulateur 1280×480 (GPU host) : marche arrière simulée → caméra ; « Écran Topway » → caméra non ramenée (`caméra quittée par l'utilisateur`) ; point mort → accueil ; nouveau recul → caméra rouverte. OK.
 - 2026-11-06 : car_photo.png restaurée depuis V5_3D+slider.apk, v0.12 recompilée, accueil vérifié sur émulateur 1280×480 (photo).
+- 2026-11-06 (journal V6, voiture) : faux « le MCU a suivi » (15 demandé, déjà 15) puis write(0x0203, 8) sans effet → corrigé ; APK recompilée.
+- 2026-11-06 : v0.13 compilée (commande volume corrigée d'après com.tw.service), non vérifiable sur émulateur (TWUtil absent).

@@ -11,8 +11,8 @@ android {
         minSdk 21
         // Android 8.1 sur l'autoradio : on cible 27 pour éviter les restrictions récentes.
         targetSdk 27
-        versionCode 12
-        versionName "0.12"
+        versionCode 13
+        versionName "0.13"
     }
 
     buildTypes {
@@ -30,4 +30,15 @@ android {
         abortOnError false
         checkReleaseBuilds false
     }
+}
+
+// Après chaque compilation debug : copie dans release/Sandero_VXXX.apk (XXX = versionCode sur 3 chiffres).
+def sanderoApkName = String.format('Sandero_V%03d.apk', android.defaultConfig.versionCode)
+tasks.register('copySanderoApk', Copy) {
+    from layout.buildDirectory.file('outputs/apk/debug/app-debug.apk')
+    into rootProject.file('../release')
+    rename { sanderoApkName }
+}
+afterEvaluate {
+    tasks.named('assembleDebug') { finalizedBy 'copySanderoApk' }
 }

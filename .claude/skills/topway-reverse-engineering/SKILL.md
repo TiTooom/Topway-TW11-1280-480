@@ -28,3 +28,4 @@ description: Méthode et scripts (tools/reverse/) pour extraire une information 
 
 ## Journal des vérifications
 - 2026-11-04 : méthode utilisée pour TWUtil, BT (0x9e08 → controlBtMusic), caméra (ReverseActivity), radio (RadioModel), annonces com.unisound.
+- 2026-11-06 : APK présents dans `APP From autoradio/applis_systeme/` (nom `TW_com.tw.service.apk` etc., 82 APK) et `applis_utilisateur/`. `cases.py` exige au moins 2 ids trouvés dans un même switch : en passer plusieurs. Résultats reportés dans `topway-twutil`.

@@ -20,7 +20,7 @@ Tout passe par l'API interne Topway (`TWUtil`) et les annonces des applis Topway
 Testé sur un autoradio Topway `ro.tw.version = V8.1.1_20220907.180036_TW11-1280x480-X` (Android 8.1, Allwinner T3). D'autres modèles Topway TW/T3 devraient fonctionner, au moins en partie. Sur un appareil sans `TWUtil`, les fonctions autoradio affichent « indisponible » sans planter.
 
 ## Installer
-1. Télécharger `Sandero.apk` dans les **Releases** du dépôt (ou le compiler, voir plus bas).
+1. Télécharger `Sandero_VXXX.apk` (XXX = numéro de version, ex. `Sandero_V013.apk`) dans les **Releases** du dépôt (ou le compiler, voir plus bas).
 2. Le copier sur une clé USB, l'ouvrir sur l'autoradio avec le gestionnaire de fichiers (autoriser les sources inconnues si demandé).
 3. Appuyer sur Accueil → **Sandero** → **Toujours**.
 4. Accepter les autorisations (caméra, localisation pour l'heure GPS). Dans Outils, accorder « Accès à l'utilisation » pour que Sandero chasse le lanceur d'origine.

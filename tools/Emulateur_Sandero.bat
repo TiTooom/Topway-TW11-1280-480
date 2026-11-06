@@ -6,10 +6,13 @@ setlocal
 set SDK=%LOCALAPPDATA%\Android\Sdk
 set ADB=%SDK%\platform-tools\adb.exe
 set AVD=Medium_Phone_API_37.0
-set APK=%~dp0..\release\Sandero.apk
+rem APK le plus recent : release\Sandero_VXXX.apk (tri par nom, XXX sur 3 chiffres)
+set APK=
+for /f "delims=" %%f in ('dir /b /o-n "%~dp0..\release\Sandero_V*.apk" 2^>nul') do if not defined APK set "APK=%~dp0..\release\%%f"
 
 if not exist "%ADB%" (echo adb introuvable : %ADB% & pause & exit /b 1)
-if not exist "%APK%" (echo APK introuvable : %APK% & pause & exit /b 1)
+if not defined APK (echo Aucun release\Sandero_V*.apk : compiler d'abord & pause & exit /b 1)
+echo APK : %APK%
 
 "%ADB%" get-state >nul 2>&1
 if errorlevel 1 (
