@@ -11,6 +11,12 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 018 · Sandero_V018.apk · 07/11/2026
+
+**Contenu** : Outils → Système et démarrage → « Options développeur / débogage USB » (`ToolsActivity.openDeveloper`). Contourne le mot de passe Topway (123456 refusé) : (1) tente `Settings.Global.putInt(adb_enabled, 1)` et `development_settings_enabled` (permission `WRITE_SECURE_SETTINGS` déclarée dans le manifeste, accordée seulement si le système l'autorise) ; (2) ouvre l'écran Android des options développeur (`ACTION_APPLICATION_DEVELOPMENT_SETTINGS`, puis `DevelopmentSettings`, puis `DevelopmentSettingsActivity`), à défaut « À propos » (7 appuis sur Numéro de build). Tout est journalisé en `[DEV]`.
+- **À vérifier (voiture)** : l'écran Android s'ouvre-t-il sans mot de passe ? `[DEV] écriture adb_enabled=1 acceptée` ou `refusée` ? Aucun ordinateur n'est nécessaire pour cette étape ; il en faut un ensuite pour `adb`.
+- Non testé sur la voiture ni sur l'émulateur.
+
 ## 0.17 · Sandero_V017.apk · 07/11/2026
 **Contenu**
 - Écran Outils refait : le menu de gauche ne montre plus que les catégories (Copie système, Véhicule, Caméra de recul, Affichage, Journal et heure, Autoradio, Système et démarrage). Un appui remplace le menu par le contenu de la catégorie, avec « ‹ Outils » pour revenir (le bouton Retour d'Android aussi).

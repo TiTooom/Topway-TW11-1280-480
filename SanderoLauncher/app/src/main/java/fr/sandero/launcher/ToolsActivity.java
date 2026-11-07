@@ -489,8 +489,59 @@ public class ToolsActivity extends Activity {
                 Toast.makeText(this, "Réglage absent sur cet autoradio", Toast.LENGTH_LONG).show();
             }
         }));
+        left.addView(button("Options développeur / débogage USB", 0xFF7C3AED, v -> openDeveloper()));
         showRight(info("Démarrage\n\nOuvrir Sandero au démarrage, y revenir au réveil et chasser le lanceur d'origine "
-                + "permettent de remplacer l'interface Topway."));
+                + "permettent de remplacer l'interface Topway.\n\n"
+                + "Options développeur : tente d'activer le débogage USB directement (si Android l'autorise), "
+                + "puis ouvre l'écran Android des options développeur sans passer par le mot de passe Topway. "
+                + "Le résultat est écrit dans le journal [DEV]."));
+    }
+
+    /** Active le débogage USB sans le mot de passe Topway : réglage direct, sinon écrans Android. */
+    private void openDeveloper() {
+        StringBuilder res = new StringBuilder("OPTIONS DÉVELOPPEUR\n\n");
+        try {
+            android.content.ContentResolver cr = getContentResolver();
+            int adb = android.provider.Settings.Global.getInt(cr, android.provider.Settings.Global.ADB_ENABLED, -1);
+            int dev = android.provider.Settings.Global.getInt(cr,
+                    android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, -1);
+            Journal.log("DEV", "état : adb_enabled=" + adb + ", development_settings_enabled=" + dev);
+            res.append("Débogage USB avant : ").append(adb == 1 ? "activé" : adb == 0 ? "désactivé" : "inconnu").append('\n');
+            try {
+                android.provider.Settings.Global.putInt(cr, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 1);
+                android.provider.Settings.Global.putInt(cr, android.provider.Settings.Global.ADB_ENABLED, 1);
+                int now = android.provider.Settings.Global.getInt(cr, android.provider.Settings.Global.ADB_ENABLED, -1);
+                Journal.log("DEV", "écriture adb_enabled=1 acceptée, relu=" + now);
+                res.append("Écriture directe : acceptée, relu = ").append(now).append('\n');
+            } catch (SecurityException e) {
+                Journal.log("DEV", "écriture adb_enabled refusée (WRITE_SECURE_SETTINGS non accordée) : " + e.getMessage());
+                res.append("Écriture directe : refusée (permission système absente)\n");
+            }
+        } catch (Throwable t) {
+            Journal.error("DEV", "lecture/écriture des réglages", t);
+            res.append("Réglages illisibles : ").append(t).append('\n');
+        }
+        Intent[] tries = {
+                new Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS),
+                new Intent().setClassName("com.android.settings", "com.android.settings.DevelopmentSettings"),
+                new Intent().setClassName("com.android.settings", "com.android.settings.Settings$DevelopmentSettingsActivity"),
+                new Intent(android.provider.Settings.ACTION_DEVICE_INFO_SETTINGS)
+        };
+        String[] names = {"ACTION_APPLICATION_DEVELOPMENT_SETTINGS", "DevelopmentSettings", "DevelopmentSettingsActivity",
+                "À propos (appuyer 7 fois sur Numéro de build)"};
+        boolean opened = false;
+        for (int i = 0; i < tries.length && !opened; i++) {
+            try {
+                startActivity(tries[i]);
+                Journal.log("DEV", "écran ouvert : " + names[i]);
+                res.append("Écran ouvert : ").append(names[i]).append('\n');
+                opened = true;
+            } catch (Throwable t) {
+                Journal.log("DEV", "écran impossible (" + names[i] + ") : " + t);
+            }
+        }
+        if (!opened) res.append("Aucun écran Android trouvé : voir le journal [DEV].\n");
+        showRight(info(res.toString()));
     }
 
 

@@ -61,3 +61,4 @@ Outils → Système et allègement : libérer la mémoire (`killBackgroundProces
 
 ## Journal des vérifications
 - 2026-11-04 : propriétés, partitions, signatures relevées ; lanceur remplacé avec succès ; fuseau Shanghai confirmé dans le journal.
+- 2026-11-07 : le mot de passe 123456 ne donne pas accès au débogage USB (menu Topway). V018 tente Settings.Global.adb_enabled puis l'écran Android des options développeur ; résultat à vérifier sur la voiture (journal [DEV]).

@@ -61,7 +61,9 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.17 — 7 nov. 2026)
+## État du projet (v0.18 — 7 nov. 2026)
+**À vérifier (v0.18)** : Outils → Système et démarrage → « Options développeur / débogage USB » : écran Android sans mot de passe ? lignes `[DEV]` du journal (écriture `adb_enabled` acceptée / refusée).
+
 Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
 
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
@@ -141,3 +143,4 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : défilement des textes longs ajouté à la v0.15 (pas de v0.16 : rien n'avait été poussé), non testé.
 - 2026-11-07 : v0.16 compilée (plein écran de l'accueil), non testée. V015 poussée sur GitHub le même jour.
 - 2026-11-07 : v0.17 compilée (Outils par catégories), non testée. Piège : j'ai écrasé Sandero_V016.apk (déjà poussée) en recompilant avant d'avoir changé le versionCode ; restaurée par `git checkout`. Toujours incrémenter le versionCode AVANT de compiler après un push.
+- 2026-11-07 : v0.18 compilée (bouton Options développeur : contournement du mot de passe Topway, 123456 refusé), non testée.
