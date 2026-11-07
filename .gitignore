@@ -17,8 +17,9 @@ plantages.txt
 twutil_*.txt
 
 # --- APK compilé : à publier en « Release » GitHub, pas dans le code -----------
-release/*.apk
 *.apk
+!release/
+!release/Sandero_V*.apk
 *.aab
 
 # --- Android / Gradle ---------------------------------------------------------

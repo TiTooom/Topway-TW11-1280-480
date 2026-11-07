@@ -11,6 +11,16 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 0.16 · Sandero_V016.apk · 07/11/2026
+**Contenu**
+- Accueil en plein écran « kiosque » : barre d'état et barre de navigation masquées (immersif collant), pour que le curseur de volume pris par le haut ne tire plus le panneau des notifications. Si une barre réapparaît (glissement depuis le bord), elle est remasquée après 0,6 s.
+- Accès aux barres : Outils (appui long sur la voiture) n'est pas en plein écran, la barre d'état et les notifications y restent accessibles. Bouton Outils → Affichage « Accueil en plein écran » (oui par défaut / non) ; préférence `tools`/`kiosk`.
+- Limite : ce n'est pas un verrouillage total (pas de `startLockTask` : il bloquerait le lancement des applis Topway). Un glissement depuis le bord peut encore faire apparaître la barre un instant.
+
+**Retours** : aucun pour l'instant.
+**Marche** : compile ; non vu sur l'émulateur ni sur la voiture (à vérifier).
+**À vérifier** : le glissement du curseur ne tire plus les notifications ; accueil non décalé sans barre d'état ; la barre Topway éventuelle disparaît-elle ?
+
 ## 0.15 · Sandero_V015.apk · 07/11/2026
 **Contenu**
 - Taille des caractères de l'accueil réglable : Outils → Affichage → « Taille des caractères de l'accueil », x1 (défaut, rien ne change) · x1,25 · x1,5 · x2 · x2,5 · x3 (un appui = cran suivant). Choix mémorisé (préférence `tools`/`ui_scale`, classe `UiScale`), conservé après redémarrage ; l'accueil se reconstruit tout seul au retour.

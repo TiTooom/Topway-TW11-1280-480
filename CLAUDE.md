@@ -60,7 +60,7 @@ tools/Emulateur_Sandero.bat  émulateur 1280×480 + Sandero, sans Android Studio
 tools/reverse/             scripts d'analyse dexdump (voir skill topway-reverse-engineering)
 tools/car3d/               rendu de la voiture de l'accueil depuis 3D/Sandero.stl (voir son README)
 3D/                        modèle 3D de la Sandero (STL)
-release/                   Sandero_VXXX.apk compilés (non versionnés : publier en Release GitHub)
+release/                   Sandero_VXXX.apk compilés (versionnés dans le dépôt depuis le 07/11/2026)
 APP From autoradio/        APK récupérés sur l'autoradio  — NON VERSIONNÉ, NE PAS LIRE
 INFOS From autoradio/      infos système, config, manuel — NON VERSIONNÉ, NE PAS LIRE
 .claude/skills/            connaissances du projet (à faire évoluer)

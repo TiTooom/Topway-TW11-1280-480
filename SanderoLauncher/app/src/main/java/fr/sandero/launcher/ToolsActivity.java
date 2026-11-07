@@ -175,6 +175,20 @@ public class ToolsActivity extends Activity {
         });
         left.addView(scaleBtn);
 
+        // Plein écran « kiosque » de l'accueil : barres système masquées. Les barres restent disponibles ici (Outils).
+        final TextView kioskBtn = (TextView) button("", 0xFF9A3412, null);
+        final Runnable paintKiosk = () -> kioskBtn.setText("Accueil en plein écran (sans barre d'état) : "
+                + (prefs.getBoolean("kiosk", true) ? "oui" : "non"));
+        paintKiosk.run();
+        kioskBtn.setOnClickListener(v -> {
+            boolean on = !prefs.getBoolean("kiosk", true);
+            prefs.edit().putBoolean("kiosk", on).apply();
+            Journal.log("UI", "accueil en plein écran : " + (on ? "oui" : "non"));
+            paintKiosk.run();
+            Toast.makeText(this, "Appliqué au retour à l'accueil", Toast.LENGTH_SHORT).show();
+        });
+        left.addView(kioskBtn);
+
         // --- Journal et heure
         TextView jt = text(14, MainActivity.TEXT_DIM);
         jt.setText("JOURNAL ET HEURE");

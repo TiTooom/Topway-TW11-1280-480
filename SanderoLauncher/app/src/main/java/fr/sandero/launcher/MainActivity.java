@@ -167,14 +167,44 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             getWindow().getDecorView().setSystemUiVisibility(Theme.night ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(flags -> {
+            // Une barre vient d'apparaître (glissement depuis le bord) : on la remasque aussitôt.
+            if (kiosk() && (flags & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) handler.postDelayed(this::applyKiosk, 600);
+        });
         setContentView(buildLayout());
         applyAccent(accent);
         setMode(mode, false);
     }
 
+    /** Mode plein écran « kiosque » (v0.16) : ni barre d'état ni barre de navigation sur l'accueil. Réglage dans Outils. */
+    private boolean kiosk() {
+        return getSharedPreferences("tools", MODE_PRIVATE).getBoolean("kiosk", true);
+    }
+
+    private void applyKiosk() {
+        try {
+            int f = (Theme.night || android.os.Build.VERSION.SDK_INT < 23) ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            if (kiosk()) {
+                f |= View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            }
+            getWindow().getDecorView().setSystemUiVisibility(f);
+        } catch (Throwable t) {
+            Journal.error("UI", "mode plein écran", t);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) applyKiosk();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        applyKiosk();
         Journal.log("UI", "accueil affiché (source " + MODE_NAMES[mode] + ")");
         refreshDock();
         // Liste des applis rechargée en arrière-plan : pas de blocage au retour à l'accueil.

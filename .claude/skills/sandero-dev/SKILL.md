@@ -34,7 +34,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 - Couleurs de l'accueil : **toujours `Theme.*`** (text, dim, glass, stroke, track, card*, accent*). Les écrans Outils/Moniteur/Système/caméra restent sombres (`MainActivity.TEXT` etc. = palette nuit fixe).
 - Textes en `setIfChanged` dans ce qui est rafraîchi toutes les 500 ms (évite des mises en page inutiles). Liste des applis chargée hors du fil principal (`appCache`).
 - Chaque action utilisateur, commande MCU, annonce reçue, erreur : `Journal.log(cat, msg)` / `Journal.error`.
-- Préférences : `dock` (`mode` 0 radio / 1 Bluetooth, `slot_N`), `tools` (`tw_enabled`, `bt_channel`, `boot_start`, `wake_front`, `watch_launcher`, `cam_in_sandero`, `cam_id`, `cam_id_auto`, `theme_mode`, `ui_scale`), `clock` (`tz`, `gps`, `offset`), `obd` (voir `sandero-obd`), `safe` (marqueurs, `safe_mode`, `obd_bt`, `obd_usb`).
+- Préférences : `dock` (`mode` 0 radio / 1 Bluetooth, `slot_N`), `tools` (`tw_enabled`, `bt_channel`, `boot_start`, `wake_front`, `watch_launcher`, `cam_in_sandero`, `cam_id`, `cam_id_auto`, `theme_mode`, `ui_scale`, `kiosk`), `clock` (`tz`, `gps`, `offset`), `obd` (voir `sandero-obd`), `safe` (marqueurs, `safe_mode`, `obd_bt`, `obd_usb`).
 
 ## Compiler
 ```bash
@@ -61,12 +61,14 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.15 — 7 nov. 2026)
+## État du projet (v0.16 — 7 nov. 2026)
 Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
 
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
-**À vérifier sur la voiture (v0.15)** :
+**À vérifier sur la voiture (v0.16)** :
+- **Plein écran de l'accueil** (`tools`/`kiosk`, Outils → Affichage) : plus de panneau de notifications en glissant le curseur de volume par le haut ; barres toujours accessibles dans Outils.
+**(v0.15)** :
 - Titre / artiste / album longs : défilement (marquee) au lieu de « … ». Piège : ne jamais refaire `setText` à l'identique sur ces vues (`setIfChanged`), ça relance le défilement.
 - **Taille des caractères** (Outils → Affichage, x1 à x3) : lisible de loin, rien ne déborde, x1 identique à avant, choix gardé après redémarrage.
 - Fréquence radio en MHz (v0.14) et lignes `[BT] session Topway`.
@@ -112,6 +114,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.12 | « le MCU a suivi » alors que la commande volume ne marche pas → volume Android forcé à 15/15 | Curseur demandé = volume déjà en place (15) : l'écho périodique 0x0203=15 pris pour une réponse | Pas de vérification d'écho si le niveau demandé = niveau actuel |
 | 0.12 | Voiture de l'accueil redevenue le rendu 3D gris | `car_photo.png` non versionnée, perdue quand `drawable-nodpi/` a été recréé (06/11 8 h 01) → secours `car_34.png` | Photo extraite de `V5_3D+slider.apk` (racine) : `unzip -p V5_3D+slider.apk res/drawable-nodpi-v4/car_photo.png > …/drawable-nodpi/car_photo.png`. **Avant chaque APK livré, vérifier qu'elle est là** (`unzip -l … \| grep car_photo`) |
 | 0.14 | Radio : tirets au lieu de la fréquence | Format 0x0401 mal supposé (c'est un `byte[4]`, pas arg1/arg2) | 0.14 : fréquence lue dans `{drapeaux, 0xf8, haut, bas}`, en 10 kHz |
+| 0.15 | Curseur de volume pris par le haut : le panneau des notifications s'ouvre | Barre d'état visible, glissement vers le bas capté par le système | 0.16 : accueil en plein écran immersif collant, remasquage des barres, bouton dans Outils |
 | 0.15 | (demande) Écran petit, texte illisible de loin | — | `UiScale` x1–x3 dans Outils, plafonds par élément, hauteurs libres dès x>1 |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
@@ -134,3 +137,4 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-06 : règle de traçabilité (demande de l'utilisateur) : `release/` garde **toutes** les versions livrées (Sandero_V013.apk = base, puis V014…). Jamais de suppression ni d'écrasement ; tout changement testé sur la voiture = nouveau versionCode. Nettoyage fait : anciens V1_NOK, V2_IN_TEST et Sandero.apk supprimés. Piège : V014 a été compilée deux fois sous le même numéro (fréquence radio, puis session Bluetooth) → l'APK actuel contient les deux changements.
 - 2026-11-07 : v0.15 compilée (taille des caractères x1–x3 sur l'accueil), non testée sur émulateur (aucun lancé) ni sur la voiture. VERSIONS.md complété avec le détail de la V014.
 - 2026-11-07 : défilement des textes longs ajouté à la v0.15 (pas de v0.16 : rien n'avait été poussé), non testé.
+- 2026-11-07 : v0.16 compilée (plein écran de l'accueil), non testée. V015 poussée sur GitHub le même jour.
