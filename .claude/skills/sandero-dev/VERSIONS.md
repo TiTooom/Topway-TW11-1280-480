@@ -11,6 +11,16 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 0.17 · Sandero_V017.apk · 07/11/2026
+**Contenu**
+- Écran Outils refait : le menu de gauche ne montre plus que les catégories (Copie système, Véhicule, Caméra de recul, Affichage, Journal et heure, Autoradio, Système et démarrage). Un appui remplace le menu par le contenu de la catégorie, avec « ‹ Outils » pour revenir (le bouton Retour d'Android aussi).
+- Colonne de droite utilisée selon la catégorie : explorateur et avancement des copies (Copie système), aperçu de l'accueil à la taille choisie (Affichage), journal affiché en direct avec Actualiser / Effacer (Journal et heure), texte d'aide ailleurs.
+- Aucune fonction retirée : mêmes boutons qu'en V016, simplement rangés.
+
+**Retours** : aucun pour l'instant.
+**Marche** : compile ; non vu sur l'émulateur ni sur la voiture (à vérifier).
+**À vérifier** : chaque bouton fonctionne depuis sa catégorie ; retour au menu ; l'avancement d'une copie s'affiche (Copie système) ; l'export du journal affiche son état sous le journal.
+
 ## 0.16 · Sandero_V016.apk · 07/11/2026
 **Contenu**
 - Accueil en plein écran « kiosque » : barre d'état et barre de navigation masquées (immersif collant), pour que le curseur de volume pris par le haut ne tire plus le panneau des notifications. Si une barre réapparaît (glissement depuis le bord), elle est remasquée après 0,6 s.

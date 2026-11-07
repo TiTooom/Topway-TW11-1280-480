@@ -21,7 +21,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 | `Clock` | Heure Europe/Paris indépendante du fuseau système, recalage GPS, `Clock.View` |
 | `Journal` | 10 000 dernières lignes (v0.11), écrites par ajout en fin de fichier (réécriture complète au-delà de 12 000 lignes ou sur `flushNow`), `files/journal.txt` + `Android/data/fr.sandero.launcher/files/journal.txt` |
 | `Safe` | Marqueurs d'étapes risquées, mode sans échec, journal des plantages |
-| `ToolsActivity` | Outils : export USB, sauvegardes, explorateur, journal, heure, thème, intégration Topway, caméra |
+| `ToolsActivity` | Outils par catégories (menu à gauche, panneau à droite) : export USB, sauvegardes, explorateur, journal, heure, thème, intégration Topway, caméra |
 | `SystemActivity` | Allègement : mémoire, applis à désactiver, animations, root |
 | `TwMonitorActivity` | Moniteur TWUtil (écoute, simulations) |
 | `Obd`, `ObdPids`, `ObdUsb`, `ObdActivity` | OBD2 par module ELM327 (Bluetooth / Wi-Fi / USB), écran Outils → OBD2 — voir skill `sandero-obd` |
@@ -61,12 +61,14 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.16 — 7 nov. 2026)
+## État du projet (v0.17 — 7 nov. 2026)
 Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
 
 **Vérifié sur la voiture** : remplace l'interface d'origine, démarre seul, revient au premier plan ; dessin de la Sandero ; caméra de recul intégrée (caméra 4), **son conservé** (« Inverse le muet » = open), retour à l'accueil ; appairage Bluetooth (sans canal 8) ; son BT après source 8 ; boutons BT 0x9e08 (suivant) ; pastille téléphone (SEND_PAIR_INFO, CONNECTION_STATE 0/2) ; titre/artiste ; curseur de volume en Bluetooth (STREAM_MUSIC) ; thème jour/nuit auto ; radio : bascule de source (0x0301 = 1) ; OBD2 par Bluetooth Android + ELM327 (KWP fast, 13 PID, voir `sandero-obd`) ; journal.
 
-**À vérifier sur la voiture (v0.16)** :
+**À vérifier sur la voiture (v0.17)** :
+- **Outils par catégories** (`ToolsActivity` : `showMenu`, `openCategory`, `fillXxx`, panneau de droite `showRight`) : tous les boutons marchent, retour, avancement des copies, journal à droite.
+**(v0.16)** :
 - **Plein écran de l'accueil** (`tools`/`kiosk`, Outils → Affichage) : plus de panneau de notifications en glissant le curseur de volume par le haut ; barres toujours accessibles dans Outils.
 **(v0.15)** :
 - Titre / artiste / album longs : défilement (marquee) au lieu de « … ». Piège : ne jamais refaire `setText` à l'identique sur ces vues (`setIfChanged`), ça relance le défilement.
@@ -138,3 +140,4 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : v0.15 compilée (taille des caractères x1–x3 sur l'accueil), non testée sur émulateur (aucun lancé) ni sur la voiture. VERSIONS.md complété avec le détail de la V014.
 - 2026-11-07 : défilement des textes longs ajouté à la v0.15 (pas de v0.16 : rien n'avait été poussé), non testé.
 - 2026-11-07 : v0.16 compilée (plein écran de l'accueil), non testée. V015 poussée sur GitHub le même jour.
+- 2026-11-07 : v0.17 compilée (Outils par catégories), non testée. Piège : j'ai écrasé Sandero_V016.apk (déjà poussée) en recompilant avant d'avoir changé le versionCode ; restaurée par `git checkout`. Toujours incrémenter le versionCode AVANT de compiler après un push.

@@ -11,8 +11,8 @@ android {
         minSdk 21
         // Android 8.1 sur l'autoradio : on cible 27 pour éviter les restrictions récentes.
         targetSdk 27
-        versionCode 16
-        versionName "0.16"
+        versionCode 17
+        versionName "0.17"
     }
 
     buildTypes {

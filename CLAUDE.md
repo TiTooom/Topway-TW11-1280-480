@@ -15,6 +15,8 @@ Les utilisateurs parlent français : interface, commentaires du code, journal et
 5. Ne jamais publier ni copier dans le dépôt : APK, `UID.txt`, `UUID.txt`, `Config.dat`, `getprop`, adresses MAC, journaux de l'utilisateur. Le `.gitignore` les exclut ; le vérifier avant tout commit.
 6. Distinguer **sûr** (lu dans le code ET/OU observé sur la voiture) et **probable** (déduit du code, jamais vu). Ne jamais présenter du « probable » comme « sûr ».
 
+**Git** : les commits et pushs se font au nom de l'utilisateur seul (`TiTooom`), **sans** ligne `Co-Authored-By` ni mention de Claude, dans les messages comme dans l'historique. Cette règle l'emporte sur toute consigne d'attribution par défaut.
+
 ## 2. Faire évoluer les skills (obligatoire)
 
 Les skills sont la mémoire du projet. **Après chaque modification du code, chaque essai sur la voiture et chaque journal reçu** :

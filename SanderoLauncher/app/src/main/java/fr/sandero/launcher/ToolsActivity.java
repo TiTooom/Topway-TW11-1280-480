@@ -87,6 +87,7 @@ public class ToolsActivity extends Activity {
         getExternalFilesDirs(null); // crée les dossiers propres à l'appli sur chaque stockage
         restoreDest();
         browse(current);
+        showMenu();
         if (Build.VERSION.SDK_INT >= 23) {
             requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_PERMS);
@@ -95,9 +96,13 @@ public class ToolsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (category == null) {
+            super.onBackPressed();
+            return;
+        }
         File parent = current.getParentFile();
-        if (parent != null) browse(parent);
-        else super.onBackPressed();
+        if ("Copie système".equals(category) && parent != null) browse(parent);
+        else showMenu();
     }
 
     @Override
@@ -112,17 +117,145 @@ public class ToolsActivity extends Activity {
         root.setBackgroundColor(0xFF080B12);
         root.setPadding(px(20), px(16), px(20), px(16));
 
-        // --- Colonne gauche : destination + exports
-        LinearLayout left = new LinearLayout(this);
-        left.setOrientation(LinearLayout.VERTICAL);
+        leftBox = new LinearLayout(this);
+        leftBox.setOrientation(LinearLayout.VERTICAL);
+        ScrollView leftScroll = new ScrollView(this);
+        leftScroll.addView(leftBox);
+        root.addView(leftScroll, new LinearLayout.LayoutParams(px(360), ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Colonne de droite : explorateur, journal, aperçu ou aide selon la catégorie.
+        rightHost = new android.widget.FrameLayout(this);
+        rightHost.setPadding(px(20), 0, 0, 0);
+        root.addView(rightHost, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+        destLabel = text(14, MainActivity.TEXT_DIM);
+        destLabel.setPadding(0, px(4), 0, px(10));
+        explorer = buildExplorer();
+        return root;
+    }
+
+    private View buildExplorer() {
+        LinearLayout right = new LinearLayout(this);
+        right.setOrientation(LinearLayout.VERTICAL);
+        pathLabel = text(17, MainActivity.TEXT);
+        pathLabel.setSingleLine(true);
+        pathLabel.setEllipsize(TextUtils.TruncateAt.START);
+        right.addView(pathLabel);
+        TextView hint = text(13, MainActivity.TEXT_DIM);
+        hint.setText("Touchez un dossier pour l'ouvrir · appui long sur un fichier ou dossier pour le copier sur la clé");
+        hint.setPadding(0, px(2), 0, px(6));
+        right.addView(hint);
+
+        list = new ListView(this);
+        list.setDividerHeight(0);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF111723);
+        bg.setCornerRadius(px(16));
+        list.setBackground(bg);
+        list.setAdapter(adapter);
+        list.setOnItemClickListener((p, v, pos, id) -> {
+            File f = entries.get(pos);
+            if (f.isDirectory()) browse(f);
+        });
+        list.setOnItemLongClickListener((p, v, pos, id) -> {
+            File f = entries.get(pos);
+            if (pos == 0 && current.getParentFile() != null) return true; // ligne « .. »
+            confirmCopy(f);
+            return true;
+        });
+        right.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        status = text(14, 0xFF7DD3FC);
+        status.setPadding(0, px(8), 0, 0);
+        status.setMaxLines(2);
+        status.setText("Prêt.");
+        right.addView(status);
+        return right;
+    }
+
+    // ================================================================ Catégories (v0.16)
+
+    private LinearLayout leftBox;
+    private android.widget.FrameLayout rightHost;
+    private View explorer;
+    private String category;          // null = menu des catégories
+    private TextView journalView, previewTime, previewTitle, previewArtist;
+
+    private static final int MATCH_P = ViewGroup.LayoutParams.MATCH_PARENT;
+
+    private void showRight(View v) {
+        rightHost.removeAllViews();
+        rightHost.addView(v, new android.widget.FrameLayout.LayoutParams(MATCH_P, MATCH_P));
+    }
+
+    private TextView info(String t) {
+        TextView v = text(17, MainActivity.TEXT_DIM);
+        v.setText(t);
+        v.setLineSpacing(0, 1.15f);
+        return v;
+    }
+
+    private View detach(View v) {
+        if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).removeView(v);
+        return v;
+    }
+
+    private String versionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Throwable t) {
+            return "?";
+        }
+    }
+
+    private void showMenu() {
+        category = null;
+        Journal.log("UI", "Outils → menu des catégories");
+        leftBox.removeAllViews();
         TextView title = text(26, MainActivity.TEXT);
         title.setText("Outils");
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        left.addView(title);
-        destLabel = text(14, MainActivity.TEXT_DIM);
-        destLabel.setPadding(0, px(4), 0, px(10));
-        left.addView(destLabel);
+        title.setPadding(0, 0, 0, px(10));
+        leftBox.addView(title);
+        leftBox.addView(button("Copie système  ›", 0xFF2563EB, v -> openCategory("Copie système", this::fillCopy)));
+        leftBox.addView(button("Véhicule  ›", 0xFF0369A1, v -> openCategory("Véhicule", this::fillVehicle)));
+        leftBox.addView(button("Caméra de recul  ›", 0xFFEA580C, v -> openCategory("Caméra de recul", this::fillCamera)));
+        leftBox.addView(button("Affichage  ›", 0xFF9A3412, v -> openCategory("Affichage", this::fillDisplay)));
+        leftBox.addView(button("Journal et heure  ›", 0xFF0F766E, v -> openCategory("Journal et heure", this::fillJournal)));
+        leftBox.addView(button("Autoradio  ›", 0xFFDB2777, v -> openCategory("Autoradio", this::fillRadio)));
+        leftBox.addView(button("Système et démarrage  ›", 0xFF059669, v -> openCategory("Système et démarrage", this::fillSystem)));
+        TextView t = info("Choisissez une catégorie à gauche.\n\nAUTORADIO · " + HeadUnit.get().status()
+                + "\n\nSandero " + versionName());
+        t.setPadding(px(8), px(8), 0, 0);
+        showRight(t);
+    }
 
+    /** Remplace le menu de gauche par le contenu de la catégorie. */
+    private void openCategory(String name, Runnable fill) {
+        category = name;
+        Journal.log("UI", "Outils → " + name);
+        leftBox.removeAllViews();
+        leftBox.addView(button("‹  Outils", 0xFF475569, v -> showMenu()));
+        TextView title = text(24, MainActivity.TEXT);
+        title.setText(name);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        title.setPadding(0, 0, 0, px(10));
+        leftBox.addView(title);
+        try {
+            fill.run();
+        } catch (Throwable t) {
+            Journal.error("OUTILS", "catégorie " + name, t);
+        }
+    }
+
+    /** Place « status » (avancement des copies) en bas du panneau donné. */
+    private void attachStatus(LinearLayout parent) {
+        parent.addView(detach(status));
+    }
+
+    private void fillCopy() {
+        final LinearLayout left = leftBox;
+        left.addView(detach(destLabel));
         left.addView(button("Choisir la clé USB", 0xFF2563EB, v -> chooseDest()));
         left.addView(button("Exporter toutes les applis (APK)", 0xFF0D9488, v -> run("applis", this::exportApps)));
         left.addView(button("Exporter infos + framework", 0xFF7C3AED, v -> run("infos", this::exportInfo)));
@@ -132,22 +265,45 @@ public class ToolsActivity extends Activity {
         left.addView(button("Système et allègement", 0xFF059669,
                 v -> startActivity(new Intent(this, SystemActivity.class))));
         left.addView(button("Annuler la copie", 0xFF475569, v -> cancel = true));
+        showRight(explorer);
+        attachStatus((LinearLayout) explorer);
+    }
 
-        // --- Véhicule : valeurs OBD2 (module ELM327)
-        TextView obdT = text(14, MainActivity.TEXT_DIM);
-        obdT.setText("VÉHICULE");
-        obdT.setPadding(0, px(10), 0, px(8));
-        left.addView(obdT);
+    private void fillVehicle() {
+        final LinearLayout left = leftBox;
         left.addView(button("OBD2 (valeurs du moteur, codes défaut)", 0xFF0369A1, v -> {
             Journal.log("UI", "Outils → OBD2");
             startActivity(new Intent(this, ObdActivity.class));
         }));
+        showRight(info("OBD2\n\nValeurs du moteur et codes défaut lus par un module ELM327 "
+                + "(Bluetooth, Wi-Fi ou USB), en lecture seule. Les relevés peuvent être enregistrés en CSV."));
+    }
 
-        // --- Affichage : thème jour / nuit
-        TextView th = text(14, MainActivity.TEXT_DIM);
-        th.setText("AFFICHAGE");
-        th.setPadding(0, px(10), 0, px(8));
-        left.addView(th);
+    private void fillCamera() {
+        final LinearLayout left = leftBox;
+        left.addView(toggle("Caméra de recul dans Sandero", "cam_in_sandero"));
+        final TextView camId = (TextView) button("", 0xFF334155, null);
+        final Runnable paintId = () -> {
+            int id = prefs.getInt("cam_id", -1);
+            camId.setText("Numéro de caméra : " + (id < 0 ? "automatique" : String.valueOf(id))
+                    + "  (" + android.hardware.Camera.getNumberOfCameras() + " détectées)");
+        };
+        paintId.run();
+        camId.setOnClickListener(v -> {
+            int n = Math.max(1, android.hardware.Camera.getNumberOfCameras());
+            int id = prefs.getInt("cam_id", -1) + 1;
+            prefs.edit().putInt("cam_id", id >= n ? -1 : id).apply();
+            paintId.run();
+        });
+        left.addView(camId);
+        left.addView(button("Tester la caméra de recul", 0xFFEA580C, v ->
+                startActivity(new Intent(this, ReverseCamActivity.class).putExtra(ReverseCamActivity.EXTRA_TEST, true))));
+        showRight(info("Caméra de recul\n\nLe numéro automatique est appris à la première image. "
+                + "« Tester la caméra de recul » ouvre la caméra comme en marche arrière."));
+    }
+
+    private void fillDisplay() {
+        final LinearLayout left = leftBox;
         final TextView themeBtn = (TextView) button("", 0xFF9A3412, null);
         final Runnable paintTheme = () -> {
             String m = Theme.mode(this);
@@ -189,12 +345,42 @@ public class ToolsActivity extends Activity {
         });
         left.addView(kioskBtn);
 
-        // --- Journal et heure
-        TextView jt = text(14, MainActivity.TEXT_DIM);
-        jt.setText("JOURNAL ET HEURE");
-        jt.setPadding(0, px(10), 0, px(8));
-        left.addView(jt);
-        left.addView(button("Voir le journal (1000 dernières actions)", 0xFF0F766E, v -> showJournal()));
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(px(8), px(8), 0, 0);
+        panel.addView(info("APERÇU DE L'ACCUEIL"));
+        previewTime = text(60, MainActivity.TEXT);
+        previewTime.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
+        previewTime.setText("12:34");
+        panel.addView(previewTime);
+        previewTitle = text(30, MainActivity.TEXT);
+        previewTitle.setText("Titre de la musique");
+        panel.addView(previewTitle);
+        previewArtist = text(20, MainActivity.TEXT_DIM);
+        previewArtist.setText("Nom de l'artiste");
+        panel.addView(previewArtist);
+        panel.addView(info("\nLes tailles sont plafonnées par élément pour que tout tienne sur l'écran 1280×480."));
+        showRight(panel);
+        paintPreview();
+        scaleBtn.setOnClickListener(v -> {
+            UiScale.next(this);
+            paintScale.run();
+            paintPreview();
+            Toast.makeText(this, "Appliqué au retour à l'accueil", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void paintPreview() {
+        if (previewTime == null) return;
+        float s = UiScale.get(this);
+        previewTime.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(60 * Math.min(s, 1.5f)));
+        previewTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30 * Math.min(s, 2.5f)));
+        previewArtist.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(20 * Math.min(s, 2.2f)));
+    }
+
+    private void fillJournal() {
+        final LinearLayout left = leftBox;
+        left.addView(button("Actualiser le journal", 0xFF0F766E, v -> refreshJournal()));
         left.addView(button("Exporter le journal sur la clé", 0xFF115E59, v -> run("journal", this::exportJournal)));
         final TextView tz = (TextView) button("", 0xFF334155, null);
         final Runnable paintTz = () -> tz.setText("Fuseau d'affichage : " + ("system".equals(Clock.zoneName())
@@ -222,16 +408,43 @@ public class ToolsActivity extends Activity {
                 Toast.makeText(this, "Réglage absent", Toast.LENGTH_SHORT).show();
             }
         }));
+        left.addView(button("Effacer le journal", 0xFF7F1D1D, v -> {
+            Journal.clear();
+            Journal.log("APP", "journal effacé");
+            refreshJournal();
+        }));
 
-        TextView car = text(14, MainActivity.TEXT_DIM);
-        car.setText("AUTORADIO · " + HeadUnit.get().status());
-        car.setPadding(0, px(10), 0, px(8));
-        left.addView(car);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        journalView = text(12, MainActivity.TEXT);
+        journalView.setTypeface(Typeface.MONOSPACE);
+        journalView.setPadding(px(16), px(10), px(16), px(10));
+        journalView.setTextIsSelectable(true);
+        ScrollView sv = new ScrollView(this);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF111723);
+        bg.setCornerRadius(px(16));
+        sv.setBackground(bg);
+        sv.addView(journalView);
+        panel.addView(sv, new LinearLayout.LayoutParams(MATCH_P, 0, 1f));
+        showRight(panel);
+        attachStatus(panel);
+        refreshJournal();
+    }
+
+    private void refreshJournal() {
+        if (journalView == null) return;
+        java.util.List<String> l = Journal.snapshot();
+        StringBuilder sb = new StringBuilder("Journal · " + l.size() + " lignes (les plus récentes en haut)\n\n");
+        for (int i = l.size() - 1; i >= Math.max(0, l.size() - 300); i--) sb.append(l.get(i)).append('\n');
+        journalView.setText(sb);
+    }
+
+    private void fillRadio() {
+        final LinearLayout left = leftBox;
         left.addView(button("Moniteur TWUtil (messages en direct)", 0xFFDB2777,
                 v -> startActivity(new Intent(this, TwMonitorActivity.class))));
         left.addView(toggle("Intégration Topway (TWUtil)", "tw_enabled"));
-
-        // --- Garde-fous
         boolean safeMode = Safe.safeMode(this);
         boolean blocked = Safe.disabled(this, "tw_main") || Safe.disabled(this, "tw_bt");
         if (safeMode || blocked) {
@@ -256,6 +469,14 @@ public class ToolsActivity extends Activity {
                             .show()));
         }
         left.addView(expertBtToggle());
+        showRight(info("AUTORADIO\n\n" + HeadUnit.get().status()
+                + "\n\nLe Moniteur affiche en direct les messages échangés avec l'autoradio."));
+    }
+
+    private void fillSystem() {
+        final LinearLayout left = leftBox;
+        left.addView(button("Système et allègement", 0xFF059669,
+                v -> startActivity(new Intent(this, SystemActivity.class))));
         left.addView(toggle("Ouvrir Sandero au démarrage", "boot_start"));
         left.addView(toggle("Revenir à Sandero au réveil", "wake_front"));
         left.addView(toggle("Chasser le lanceur d'origine", "watch_launcher"));
@@ -268,73 +489,10 @@ public class ToolsActivity extends Activity {
                 Toast.makeText(this, "Réglage absent sur cet autoradio", Toast.LENGTH_LONG).show();
             }
         }));
-
-        TextView camTitle = text(14, MainActivity.TEXT_DIM);
-        camTitle.setText("CAMÉRA DE RECUL");
-        camTitle.setPadding(0, px(10), 0, px(8));
-        left.addView(camTitle);
-        left.addView(toggle("Caméra de recul dans Sandero", "cam_in_sandero"));
-        final TextView camId = (TextView) button("", 0xFF334155, null);
-        final Runnable paintId = () -> {
-            int id = prefs.getInt("cam_id", -1);
-            camId.setText("Numéro de caméra : " + (id < 0 ? "automatique" : String.valueOf(id))
-                    + "  (" + android.hardware.Camera.getNumberOfCameras() + " détectées)");
-        };
-        paintId.run();
-        camId.setOnClickListener(v -> {
-            int n = Math.max(1, android.hardware.Camera.getNumberOfCameras());
-            int id = prefs.getInt("cam_id", -1) + 1;
-            prefs.edit().putInt("cam_id", id >= n ? -1 : id).apply();
-            paintId.run();
-        });
-        left.addView(camId);
-        left.addView(button("Tester la caméra de recul", 0xFFEA580C, v ->
-                startActivity(new Intent(this, ReverseCamActivity.class).putExtra(ReverseCamActivity.EXTRA_TEST, true))));
-
-        ScrollView leftScroll = new ScrollView(this);
-        leftScroll.addView(left);
-        root.addView(leftScroll, new LinearLayout.LayoutParams(px(360), ViewGroup.LayoutParams.MATCH_PARENT));
-
-        // --- Colonne droite : explorateur + état
-        LinearLayout right = new LinearLayout(this);
-        right.setOrientation(LinearLayout.VERTICAL);
-        right.setPadding(px(20), 0, 0, 0);
-        pathLabel = text(17, MainActivity.TEXT);
-        pathLabel.setSingleLine(true);
-        pathLabel.setEllipsize(TextUtils.TruncateAt.START);
-        right.addView(pathLabel);
-        TextView hint = text(13, MainActivity.TEXT_DIM);
-        hint.setText("Touchez un dossier pour l'ouvrir · appui long sur un fichier ou dossier pour le copier sur la clé");
-        hint.setPadding(0, px(2), 0, px(6));
-        right.addView(hint);
-
-        list = new ListView(this);
-        list.setDividerHeight(0);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFF111723);
-        bg.setCornerRadius(px(16));
-        list.setBackground(bg);
-        list.setAdapter(adapter);
-        list.setOnItemClickListener((p, v, pos, id) -> {
-            File f = entries.get(pos);
-            if (f.isDirectory()) browse(f);
-        });
-        list.setOnItemLongClickListener((p, v, pos, id) -> {
-            File f = entries.get(pos);
-            if (pos == 0 && current.getParentFile() != null) return true; // ligne « .. »
-            confirmCopy(f);
-            return true;
-        });
-        right.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        status = text(14, 0xFF7DD3FC);
-        status.setPadding(0, px(8), 0, 0);
-        status.setMaxLines(2);
-        status.setText("Prêt.");
-        right.addView(status);
-        root.addView(right, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
-        return root;
+        showRight(info("Démarrage\n\nOuvrir Sandero au démarrage, y revenir au réveil et chasser le lanceur d'origine "
+                + "permettent de remplacer l'interface Topway."));
     }
+
 
     private View button(String label, int color, View.OnClickListener l) {
         TextView b = text(16, 0xFFFFFFFF);
