@@ -11,6 +11,29 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 0.15 · Sandero_V015.apk · 07/11/2026
+**Contenu**
+- Taille des caractères de l'accueil réglable : Outils → Affichage → « Taille des caractères de l'accueil », x1 (défaut, rien ne change) · x1,25 · x1,5 · x2 · x2,5 · x3 (un appui = cran suivant). Choix mémorisé (préférence `tools`/`ui_scale`, classe `UiScale`), conservé après redémarrage ; l'accueil se reconstruit tout seul au retour.
+- Plafonds par élément pour que tout tienne dans 480 px : heure et date ×1,5 max, titre ×2,5, artiste ×2,2, album ×1,6, temps / présélections ×1,5–1,6, dock ×1,5 (sous-titre masqué dès x1,5), autres textes ×2. Les boutons et pastilles à hauteur fixe deviennent « hauteur libre » dès que le texte grossit (à x1 : identiques à la V014).
+- Seul l'accueil grossit pour l'instant ; Outils, OBD, Système, Moniteur et caméra gardent leur taille.
+
+**Retours** : aucun pour l'instant.
+**Marche** : compile (V015, APK mis à jour le 07/11) ; non vu sur l'émulateur ni sur la voiture (à vérifier).
+**Ne marche pas** : —
+**À corriger / à vérifier** : défilement des titres longs fluide ; lisibilité de loin à x2 / x3 ; débordements possibles (titre long coupé par « … », dock, pastille téléphone) ; x1 doit être strictement identique à la V014.
+
+## 0.14 · Sandero_V014.apk · 06/11/2026
+**Contenu**
+- Radio : fréquence FM lue dans le `byte[4]` du message 0x0401 `{drapeaux, 0xf8, haut, bas}` (10 kHz : 0x23d7 → 91,75 MHz). Affichage au pas de 50 kHz (« 91.75 », « 93.4 »). Corrige les tirets de la V013 (format 0x0401 mal supposé).
+- Bluetooth : observation de la session média de l'appli Bluetooth Topway (`[BT] session Topway …` dans le journal : état, position, métadonnées). L'icône lecture / pause ne se fie à cette session qu'après l'avoir vue changer d'état, sinon son état peut être figé.
+- Règle projet notée : l'autoradio n'est jamais en ligne (pas de pochettes ni d'API web).
+- Piège : V014 a été compilée deux fois sous le même numéro (fréquence radio, puis session Bluetooth) ; l'APK livré contient les deux.
+
+**Retours** : aucun pour l'instant (journal de la voiture attendu).
+**Marche** : — (non essayée sur la voiture).
+**Ne marche pas** : —
+**À corriger / à vérifier** : fréquence affichée en MHz sur la voiture ; lignes `[BT] session Topway` du journal ; icône lecture / pause juste. Restent de la V013 : vérifier la permission CAMÉRA et le dire à l'écran, annuler la chaîne d'essais caméra en cours, enregistrer la caméra apprise dès le 1er succès.
+
 ## 0.13 · Sandero_V013.apk · 06/11/2026
 **Contenu**
 - Volume : le curseur envoie `write(0x0203, 1, niveau)`, la commande de la barre de son Topway (lue dans `com.tw.service`). Le niveau reçu est lu sans le bit de sourdine (bit 31).

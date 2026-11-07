@@ -88,6 +88,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
     private SharedPreferences prefs;
     private float unit = 1f;
+    private float ts = 1f;   // taille des caractères choisie dans Outils (x1 à x3), voir UiScale
     private final Handler handler = new Handler(Looper.getMainLooper());
     private AlertDialog openDialog;
     private AudioManager audio;
@@ -152,6 +153,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         int w = Math.max(dm.widthPixels, dm.heightPixels);
         int h = Math.min(dm.widthPixels, dm.heightPixels);
         unit = Math.min(w / 1280f, h / 480f);
+        ts = UiScale.get(this);
+        if (ts != 1f) Journal.log("UI", "taille des caractères " + UiScale.label(UiScale.index(this)));
 
         mode = prefs.getInt("mode", MODE_BT);
         if (mode == MODE_APPS) mode = MODE_BT; // Applis et Bluetooth réunis : le téléphone envoie tout son son
@@ -242,7 +245,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
         TextView time = new Clock.View(this, "HH:mm");
         time.setTextColor(Theme.text);
-        time.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(96));
+        time.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(96 * sc(1.5f)));
         time.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
         time.setIncludeFontPadding(false);
         time.setLetterSpacing(-0.02f);
@@ -252,7 +255,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         date.setAllCaps(true);
         date.setLetterSpacing(0.14f);
         date.setTextColor(Theme.dim);
-        date.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(17));
+        date.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(17 * sc(1.5f)));
         date.setPadding(px(4), px(4), 0, 0);
         col.addView(date);
 
@@ -311,19 +314,19 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         info.setOrientation(LinearLayout.VERTICAL);
         info.setPadding(px(30), 0, 0, 0);
         info.setOnClickListener(v -> onInfoTapped());
-        title = text(36, Theme.text);
+        title = text(36, Theme.text, 2.5f);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setSingleLine(true);
-        title.setEllipsize(TextUtils.TruncateAt.END);
+        marquee(title);
         info.addView(title);
-        artist = text(23, Theme.artist);
+        artist = text(23, Theme.artist, 2.2f);
         artist.setSingleLine(true);
-        artist.setEllipsize(TextUtils.TruncateAt.END);
+        marquee(artist);
         artist.setPadding(0, px(6), 0, 0);
         info.addView(artist);
-        album = text(18, Theme.dim);
+        album = text(18, Theme.dim, 1.6f);
         album.setSingleLine(true);
-        album.setEllipsize(TextUtils.TruncateAt.END);
+        marquee(album);
         album.setPadding(0, px(4), 0, 0);
         info.addView(album);
 
@@ -335,8 +338,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
         LinearLayout times = new LinearLayout(this);
         times.setOrientation(LinearLayout.HORIZONTAL);
-        elapsed = text(15, Theme.dim);
-        duration = text(15, Theme.dim);
+        elapsed = text(15, Theme.dim, 1.5f);
+        duration = text(15, Theme.dim, 1.5f);
         duration.setGravity(Gravity.END);
         times.addView(elapsed, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         times.addView(duration, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -348,12 +351,13 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
         for (int i = 0; i < presetViews.length; i++) {
             final int index = i;
-            TextView p = text(15, Theme.text);
+            TextView p = text(15, Theme.text, 1.6f);
             p.setGravity(Gravity.CENTER);
             p.setSingleLine(true);
             p.setEllipsize(TextUtils.TruncateAt.END);
             p.setOnClickListener(v -> hu.radioPreset(index));
-            LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(0, px(46), 1f);
+            LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(0, ph(46), 1f);
+            p.setMinHeight(px(46));
             plp.setMargins(i == 0 ? 0 : px(4), 0, i == presetViews.length - 1 ? 0 : px(4), 0);
             presetRow.addView(p, plp);
             presetViews[i] = p;
@@ -427,7 +431,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         btPillText = text(15, Theme.text);
         btPillText.setSingleLine(true);
         btPillText.setEllipsize(TextUtils.TruncateAt.END);
-        btPillText.setMaxWidth(px(300));
+        btPillText.setMaxWidth(px(300 * Math.min(ts, 2f)));
         btPillText.setPadding(px(10), 0, 0, 0);
         pill.addView(btPillText);
         pill.setOnClickListener(v -> {
@@ -435,7 +439,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
             BtInfo.ask();
             launchSlot(SLOT_BT);
         });
-        pill.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, px(44)));
+        pill.setMinimumHeight(px(44));
+        pill.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ph(44)));
         updateBtPill();
         return pill;
     }
@@ -545,7 +550,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         t.setText(label);
         t.setPadding(px(8), 0, 0, 0);
         c.addView(t);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, px(44));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ph(44));
+        c.setMinimumHeight(px(44));
         lp.rightMargin = px(10);
         c.setLayoutParams(lp);
         return c;
@@ -566,7 +572,7 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         volumeLabel = text(17, Theme.text);
         volumeLabel.setGravity(Gravity.CENTER);
         volumeLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        pill.addView(volumeLabel, new LinearLayout.LayoutParams(px(44), ViewGroup.LayoutParams.WRAP_CONTENT));
+        pill.addView(volumeLabel, new LinearLayout.LayoutParams(ph(44) == px(44) ? px(44) : ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         pill.addView(roundButton(new Icon(Icon.VOL_UP, Theme.text), 44, 24, 0, v -> changeVolume(AudioManager.ADJUST_RAISE), 0));
         return pill;
     }
@@ -600,9 +606,23 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         return m;
     }
 
+    /** Facteur de taille des caractères, plafonné à « cap » pour que la mise en page tienne dans 480 px. */
+    private float sc(float cap) {
+        return Math.min(ts, cap);
+    }
+
+    /** Hauteur d'un élément portant du texte : fixe à x1 (rien ne bouge), libre dès que le texte grossit. */
+    private int ph(float h) {
+        return ts > 1f ? ViewGroup.LayoutParams.WRAP_CONTENT : px(h);
+    }
+
     private TextView text(float size, int color) {
+        return text(size, color, 2f);
+    }
+
+    private TextView text(float size, int color, float cap) {
         TextView t = new TextView(this);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(size));
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(size * sc(cap)));
         t.setTextColor(color);
         return t;
     }
@@ -755,15 +775,15 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         setArt("radio", Icon.RADIO, Theme.accentRadio);
         animateAccent(Theme.accentRadio);
         if (!hu.available()) {
-            title.setText("Radio");
-            artist.setText("Fonction réservée à l'autoradio Topway");
-            album.setText(hu.status());
+            setIfChanged(title, "Radio");
+            setIfChanged(artist, "Fonction réservée à l'autoradio Topway");
+            setIfChanged(album, hu.status());
         } else {
             boolean am = hu.isAm();
-            title.setText(HeadUnit.formatFreq(hu.radioFreq) + (am ? " kHz" : " MHz"));
+            setIfChanged(title, HeadUnit.formatFreq(hu.radioFreq) + (am ? " kHz" : " MHz"));
             artist.setText(!TextUtils.isEmpty(hu.radioName) ? hu.radioName
                     : hu.source == Tw.SRC_RADIO ? (am ? "Radio AM" : "Radio FM") : "Radio éteinte · touchez ⏻");
-            album.setText(!TextUtils.isEmpty(hu.radioText) ? hu.radioText : am ? "AM" : "FM");
+            setIfChanged(album, !TextUtils.isEmpty(hu.radioText) ? hu.radioText : am ? "AM" : "FM");
         }
         for (int i = 0; i < presetViews.length; i++) {
             HeadUnit.Preset p = hu.presets[i];
@@ -780,13 +800,13 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         setArt("bt", Icon.BT, Theme.accentBt);
         animateAccent(Theme.accentBt);
         if (!hu.btConnected && TextUtils.isEmpty(hu.btTitle)) {
-            title.setText("Bluetooth");
-            artist.setText("Aucun téléphone connecté");
-            album.setText("Appui long sur Bluetooth (dock) pour appairer un téléphone");
+            setIfChanged(title, "Bluetooth");
+            setIfChanged(artist, "Aucun téléphone connecté");
+            setIfChanged(album, "Appui long sur Bluetooth (dock) pour appairer un téléphone");
         } else {
-            title.setText(!TextUtils.isEmpty(hu.btTitle) ? hu.btTitle : "Musique Bluetooth");
-            artist.setText(hu.btArtist);
-            album.setText(hu.btAlbum);
+            setIfChanged(title, !TextUtils.isEmpty(hu.btTitle) ? hu.btTitle : "Musique Bluetooth");
+            setIfChanged(artist, hu.btArtist);
+            setIfChanged(album, hu.btAlbum);
         }
     }
 
@@ -927,19 +947,21 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setPadding(px(12), 0, 0, 0);
-        TextView label = text(17, Theme.text);
+        TextView label = text(17, Theme.text, 1.5f);
         label.setText(name);
         label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         label.setSingleLine(true);
         texts.addView(label);
-        TextView s2 = text(12, Theme.dim);
+        TextView s2 = text(12, Theme.dim, 1.5f);
         s2.setText(sub);
+        if (ts > 1.25f) s2.setVisibility(View.GONE);   // place pour le titre de la carte
         s2.setSingleLine(true);
         s2.setEllipsize(TextUtils.TruncateAt.END);
         texts.addView(s2);
         tile.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        tile.setLayoutParams(new LinearLayout.LayoutParams(0, px(66), 1f));
+        tile.setMinimumHeight(px(66));
+        tile.setLayoutParams(new LinearLayout.LayoutParams(0, ph(66), 1f));
         return tile;
     }
 
@@ -1192,13 +1214,13 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         }
 
         if (controller == null && !listenerAllowed) {
-            title.setText("Prêt à jouer");
-            artist.setText("Touchez ici pour afficher titre et pochette");
-            album.setText("Autoriser « Sandero » dans l'accès aux notifications");
+            setIfChanged(title, "Prêt à jouer");
+            setIfChanged(artist, "Touchez ici pour afficher titre et pochette");
+            setIfChanged(album, "Autoriser « Sandero » dans l'accès aux notifications");
         } else {
-            title.setText(t != null ? t : (controller != null ? "Lecture en cours" : "Aucune lecture"));
-            artist.setText(a != null ? a : (controller != null ? "" : "Lancez Spotify, YouTube ou une autre appli"));
-            album.setText(al != null ? al : (source != null ? source : ""));
+            setIfChanged(title, t != null ? t : (controller != null ? "Lecture en cours" : "Aucune lecture"));
+            setIfChanged(artist, a != null ? a : (controller != null ? "" : "Lancez Spotify, YouTube ou une autre appli"));
+            setIfChanged(album, al != null ? al : (source != null ? source : ""));
         }
 
         String key = "apps" + mode;
@@ -1303,6 +1325,11 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
     private final Runnable ticker = new Runnable() {
         @Override
         public void run() {
+            if (UiScale.get(MainActivity.this) != ts) {
+                Journal.log("UI", "nouvelle taille des caractères : accueil reconstruit");
+                recreate();
+                return;
+            }
             if (Theme.nightNow(MainActivity.this) != Theme.night) {
                 Journal.log("THEME", "bascule vers le mode " + (Theme.night ? "JOUR" : "NUIT")
                         + " (" + Clock.format("HH:mm") + ", réglage " + Theme.label(Theme.mode(MainActivity.this)) + ")");
@@ -1482,6 +1509,15 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
     // ================================================================ Utilitaires
 
     /** Évite une mise en page complète quand le texte ne change pas. */
+    /** Texte trop long : il défile de droite à gauche au lieu d'être coupé par « … » (v0.16). */
+    private static void marquee(TextView t) {
+        t.setSingleLine(true);
+        t.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        t.setMarqueeRepeatLimit(-1);
+        t.setHorizontallyScrolling(true);
+        t.setSelected(true);
+    }
+
     private static void setIfChanged(TextView t, CharSequence text) {
         if (!TextUtils.equals(t.getText(), text)) t.setText(text);
     }

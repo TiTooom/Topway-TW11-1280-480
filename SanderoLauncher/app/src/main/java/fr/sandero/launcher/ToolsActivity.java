@@ -163,6 +163,18 @@ public class ToolsActivity extends Activity {
         });
         left.addView(themeBtn);
 
+        // Taille des caractères de l'accueil : x1 (défaut) à x3, mémorisée.
+        final TextView scaleBtn = (TextView) button("", 0xFF9A3412, null);
+        final Runnable paintScale = () -> scaleBtn.setText("Taille des caractères de l'accueil : "
+                + UiScale.label(UiScale.index(this)) + " (toucher pour changer)");
+        paintScale.run();
+        scaleBtn.setOnClickListener(v -> {
+            UiScale.next(this);
+            paintScale.run();
+            Toast.makeText(this, "Appliqué au retour à l'accueil", Toast.LENGTH_SHORT).show();
+        });
+        left.addView(scaleBtn);
+
         // --- Journal et heure
         TextView jt = text(14, MainActivity.TEXT_DIM);
         jt.setText("JOURNAL ET HEURE");
