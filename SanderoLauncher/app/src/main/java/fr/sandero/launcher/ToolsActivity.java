@@ -490,11 +490,34 @@ public class ToolsActivity extends Activity {
             }
         }));
         left.addView(button("Options développeur / débogage USB", 0xFF7C3AED, v -> openDeveloper()));
+        left.addView(button("Diagnostic ADB (USB et Wi-Fi)", 0xFF0E7490, v -> adbAction(false)));
+        left.addView(button("Essayer d'ouvrir ADB par Wi-Fi", 0xFF0E7490, v -> adbAction(true)));
+        left.addView(button("Choix du mode USB (Android)", 0xFF0E7490, v -> showRight(info(AdbDiag.openUsbChooser(this)))));
         showRight(info("Démarrage\n\nOuvrir Sandero au démarrage, y revenir au réveil et chasser le lanceur d'origine "
                 + "permettent de remplacer l'interface Topway.\n\n"
                 + "Options développeur : tente d'activer le débogage USB directement (si Android l'autorise), "
                 + "puis ouvre l'écran Android des options développeur sans passer par le mot de passe Topway. "
-                + "Le résultat est écrit dans le journal [DEV]."));
+                + "Le résultat est écrit dans le journal [DEV].\n\n"
+                + "Diagnostic ADB : lit l'état d'ADB, du Wi-Fi et de la prise USB (journal [ADB]). "
+                + "Faites-le Wi-Fi connecté, puis exportez le journal."));
+    }
+
+    /** Diagnostic ou essai d'activation d'ADB, hors du fil principal. */
+    private void adbAction(final boolean enable) {
+        showRight(info(enable ? "Essai en cours (3 s)…" : "Diagnostic en cours…"));
+        new Thread(() -> {
+            String r;
+            try {
+                r = enable ? AdbDiag.tryEnable(getApplicationContext()) : AdbDiag.diagnose(getApplicationContext());
+            } catch (Throwable t) {
+                Journal.error("ADB", "action", t);
+                r = "Erreur : " + t;
+            }
+            final String res = r;
+            runOnUiThread(() -> {
+                if (!isFinishing()) showRight(info(res));
+            });
+        }, "adb-diag").start();
     }
 
     /** Active le débogage USB sans le mot de passe Topway : réglage direct, sinon écrans Android. */

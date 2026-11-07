@@ -17,9 +17,19 @@ description: Autoradio Topway TW11 1280x480 (Allwinner T3, Android 8.1 eng) — 
 | Divers | Langue fr-FR ; **fuseau `Asia/Shanghai`** ; Z-Link (CarPlay/Android Auto filaire, `com.zjinnova.zlink`) |
 
 ## Sécurité
-- Build `eng`, `ro.debuggable=1`, **SELinux permissive**, `ro.adb.secure=1`, adbd arrêté. Si ADB est activable (options développeur / réglages usine / port USB en mode périphérique, contrôleur `1c13000.udc-controller` présent), `adb root` devrait marcher.
+- Build `eng`, `ro.debuggable=1`, **SELinux permissive**, `ro.adb.secure=1`.
 - Système signé avec la **clé Topway** (`CN=John, OU=Android, O=TW, L=Shenzhen`, SHA-1 `409d305d6bb9d9108c48179e5e05641ca29b9cd0`), pas la clé de test AOSP : **impossible** d'obtenir `android.uid.system` pour Sandero.
-- Root via `su` : non testé sur l'appareil (Outils → Système et allègement l'affiche).
+
+### ADB (sûr, relevé 07/11/2026 via V019)
+- **ADB par Wi-Fi marche**, sans root : l'appli (Sandero V019, Outils → Système et démarrage → « Essayer d'ouvrir ADB par Wi-Fi ») fait `SystemProperties.set("service.adb.tcp.port","5555")` + `ctl.restart adbd` (accepté sur build eng). Puis depuis le PC : `adb connect <IP>:5555`, accepter la fenêtre RSA (« Toujours autoriser ») → `device`. Le shell est **`uid=2000(shell)`**, SELinux `u:r:shell:s0`.
+- Le port 5555 est **perdu à chaque redémarrage** (propriété non persistante) : refaire le bouton, ou V020 le relancera au démarrage.
+- Déjà utile en `shell` (sans root) : `pm disable-user com.android.launcher` (désactiver le lanceur d'origine), `logcat`, `pm`, `screencap`, `input`, pull de `/sdcard`.
+
+### Root : NON obtenu par ADB (sûr, 07/11/2026)
+- **`adb root` n'élève pas** : après `adb root`, `service.adb.root` reste vide et le shell reste `uid=2000`, malgré `ro.debuggable=1`. L'adbd de Topway est compilé **sans `ALLOW_ADBD_ROOT`** (debuggable mis à part) → pas de root par cette voie.
+- **`su` ne donne pas le root non plus** : `/system/xbin/su` (root:root, `-rwxr-xr-x`, **pas setuid**, 16 Ko, 2021-08-17) est le `su` AOSP **qui ne fait que descendre** depuis un appelant déjà root ; appelé depuis `shell` il échoue (`su: setgid failed: Operation not permitted`). Ce n'est pas un `su` type Magisk/SuperSU. C'est pour ça qu'Outils affiche « pas de root ».
+- `/system` et `/vendor` montés **ro** ; `/dev/block/by-name/*` en `Permission denied` pour le shell. **L'image des partitions par `dd` reste donc impossible sans root.**
+- **Pistes de root légitimes (appareil personnel, non essayées)** : (1) **Magisk** — récupérer le `boot.img` d'origine dans le firmware Topway (TW11-1280x480-X, T3L), le patcher avec Magisk, le reflasher ; (2) **mode FEL Allwinner** (boot ROM USB du T3) avec `sunxi-tools` (`sunxi-fel`) — standard pour dumper/booter un Allwinner qu'on possède, entré par un bouton/pont au démarrage ; (3) **menu usine/ingénierie Topway** s'il expose un interrupteur root. Les voies (1) et (2) demandent le firmware et/ou PhoenixSuit (voir Sauvegarde).
 
 ## Partitions (`/dev/block/by-name`)
 bootloader p2 · env p3 · boot p4 · system p5 (1 Go) · vendor p6 · misc p7 · recovery p8 · cache p9 · metadata p10 · private p11 · frp p12 · empty p13 · dto p14 · media_data p15 · **UDISK p1 = /data**. Illisibles sans root.
@@ -55,10 +65,43 @@ Outils → Système et allègement : libérer la mémoire (`killBackgroundProces
 
 ## Sauvegarde / export
 - Outils → Exporter toutes les applis (APK) / infos + framework / tout /system / **Sauvegarde complète (sans root)** (applis + /system + infos + réglages Android) — dossiers `SanderoExport_*` sur la clé.
-- Image des partitions : Outils (root, `dd` vers `/mnt/media_rw/<clé>`, morceaux de 3 Go, MD5) ou `tools/Sauvegarde_ADB.bat` (PC, `adb root` + `exec-out dd`).
+- Image des partitions : Outils (root, `dd` vers `/mnt/media_rw/<clé>`, morceaux de 3 Go, MD5) ou `tools/Sauvegarde_ADB.bat` (PC, `adb root` + `exec-out dd`). **Bloqué faute de root** (voir Sécurité → Root) : `adb root` n'élève pas, `dd` sur `/dev/block/by-name/*` = Permission denied. Reste faisable sans root : la **Sauvegarde complète** d'Outils (applis + /system lisible + infos + réglages).
 - Plantage complet : seul le firmware Topway (TW11-1280x480-X, T3L) + PhoenixSuit (Allwinner) permet de réinstaller.
 - Les exports contiennent des données personnelles (UID, licence, MAC) : à garder hors du dépôt (`INFOS From autoradio/`, ignoré par Git).
 
 ## Journal des vérifications
 - 2026-11-04 : propriétés, partitions, signatures relevées ; lanceur remplacé avec succès ; fuseau Shanghai confirmé dans le journal.
-- 2026-11-07 : le mot de passe 123456 ne donne pas accès au débogage USB (menu Topway). V018 tente Settings.Global.adb_enabled puis l'écran Android des options développeur ; résultat à vérifier sur la voiture (journal [DEV]).
+- 2026-11-07 : le mot de passe 123456 du menu Topway ne donne pas accès au débogage USB. **L'écran Android des options développeur s'ouvre sans mot de passe** depuis Sandero V018 (Outils → Système et démarrage), et le débogage USB s'y active : `adb_enabled=1` (sûr). L'écriture directe de `adb_enabled` par l'appli est refusée (`WRITE_SECURE_SETTINGS`).
+- 2026-11-07 : avec `adb_enabled=1`, PC relié par un câble USB-C vers USB-A (câble de manette Xbox) : le PC se recharge, mais Windows ne voit **aucun périphérique** (ni ADB ni inconnu). La prise USB-A de l'autoradio est en mode **hôte** (sûr). Pas de root d'après Outils (sûr). Pistes (probables, non vues) : ADB par Wi-Fi si `service.adb.tcp.port` ou `persist.adb.tcp.port` est déjà réglé ; option « USB OTG / périphérique » dans les réglages usine Topway ; passage du port OTG en mode périphérique par `/sys/devices/platform/soc/usbc0/` (sans doute réservé au root).
+- 2026-11-07 : plantage du système Android (`DeadSystemException` dans les applis, redémarrage complet en ~30 s). Cause inconnue.
+- 2026-11-07 : `adb connect 192.168.0.103:5555` (Wi-Fi) → « refusée » : adbd n'écoute pas en TCP (sûr). V019 ajoute le diagnostic ADB ([ADB]) ; résultat à relever sur la voiture.
+- 2026-11-07 (V019, sûr) : **ADB par Wi-Fi sans root** : une appli ordinaire peut faire `SystemProperties.set("service.adb.tcp.port","5555")` puis `ctl.restart adbd` (build eng) ; le port 5555 s'ouvre, perdu au redémarrage. Première connexion PC : `unauthorized` jusqu'à acceptation de la fenêtre RSA sur l'écran. Prise USB : `otg_role=usb_host`, contrôleur `1c13000.udc-controller`, `sys.usb.config=adb`, `ro.adb.secure=1`, `su` en `/system/xbin/su` présent mais refusé à l'appli. Câble PC ↔ prise USB inutile.
+- 2026-11-07 (V019, sûr) : **connexion ADB Wi-Fi réussie** (`adb connect 192.168.0.103:5555` → `device` après RSA). Shell = `uid=2000(shell)`, `u:r:shell:s0`. **`adb root` n'élève pas** (`service.adb.root` vide, shell reste 2000 malgré `ro.debuggable=1` → adbd sans `ALLOW_ADBD_ROOT`). **`su` AOSP non élévateur** (`/system/xbin/su`, pas setuid → `setgid failed: Operation not permitted` depuis shell). `/system` et `/vendor` en ro, `/dev/block/by-name/*` interdit au shell. Conclusion : **pas de root par ADB** ; image des partitions impossible sans root. Pistes root restantes : Magisk sur boot.img du firmware, mode FEL Allwinner (sunxi-fel), menu usine. `ro.bootmode=unknown`.
+
+### Mode FEL Allwinner (T3 = sun8iw11) — faisabilité (étudié 07/11/2026, non essayé)
+But : accès bas niveau par le BootROM USB du T3, où la **prise USB devient périphérique** (le câble PC marche enfin) → dump des partitions et/ou root sans dépendre d'`adb root`.
+- **Entrée en FEL** : `adb reboot efex` (nom Allwinner, **non confirmé sur ce modèle**) ; sinon méthode matérielle (bouton/pont FEL au démarrage, ou média de boot illisible). Device USB en FEL : `1f3a:efe8`.
+- **PC** : `sunxi-tools` (`sunxi-fel`) — build Windows + pilote **WinUSB via Zadig** sur `1f3a:efe8` (sinon ERROR -12). Projet : github.com/linux-sunxi/sunxi-tools ; Zadig : voir github.com/zador-blood-stained/fel-mass-storage.
+- **xfel (xboot) : écarté** — sa liste ne contient ni T3 ni sun8iw11, et il **ne gère pas l'eMMC** (seulement RAM, SPI NOR/NAND). R40/A40i y sont mais sans eMMC. Donc inutile ici.
+- **Piège central** : FEL = RAM + BootROM seulement. **Lire l'eMMC exige de charger d'abord un U-Boot sun8iw11** (init DDR + MMC) via `sunxi-fel spl`/`write`+`exec`, puis `mmc read` côté U-Boot. Le T3 étant **sun8iw11 comme R40/A40i (supportés par le U-Boot mainline)**, un **U-Boot-with-SPL mainline R40/A40i** est la piste réaliste (risque de blocage si DDR/PMIC diffèrent, mais **récupérable par coupure de courant tant qu'on ne fait que lire**).
+- **Ordre sûr** : outillage PC (sunxi-tools + Zadig) → **firmware Topway TW11-1280x480-X d'origine en filet de secours** (donne aussi le `boot.img` pour Magisk et un U-Boot T3) → entrer en FEL → `sunxi-fel version` → liveboot U-Boot → dump eMMC (lecture, sûr) → seulement ensuite l'écriture pour le root.
+- **Ne jamais écrire en FEL sans le firmware de secours** (bootloader/boot/env), sous peine de brique sans image de restauration.
+- 2026-11-07 (sûr, shell ADB uid 2000) : **sauvegarde sans root = fichiers seulement, partielle**. Lisibles : les **APK** (`/system/app`, `/system/priv-app`), le **framework** (`framework.jar`), la plupart de `/system` et `/vendor`, `getprop`, listes de paquets. **Refusés** : partitions brutes `/dev/block/by-name/*` (donc **aucune image reflashable**), `/data` (UDISK), et `/system/build.prop` lui-même (mais `getprop` en redonne les valeurs). Conclusion : sans root on **conserve et étudie** le système, on ne peut pas en faire une image de restauration. Image reflashable = root/FEL, ou **firmware d'origine TW11-1280x480-X du vendeur** (sans root, = meilleur filet).
+
+### Relevé de la sauvegarde ADB du 07/11/2026 (sûr)
+**Tailles des partitions** (eMMC `mmcblk0`, 29,8 Go ; mapping par `by-name`) :
+`UDISK p1 = 26792 Mo (/data)` · bootloader p2 = 32 · env p3 = 16 · **boot p4 = 32** · system p5 = 1024 · vendor p6 = 240 · misc p7 = 16 · recovery p8 = 32 · cache p9 = 512 · metadata p10 = 1024 · private p11 = 16 · frp p12 = 0,5 · empty p13 = 15,5 · dto p14 = 16 · media_data p15 = 16. Plus `mmcblk0boot0/boot1 = 4 Mo` (zones boot eMMC). → **boot et recovery ne font que 32 Mo** (dump rapide une fois le root/FEL obtenu).
+**Réglages Topway (props)** : `persist.sys.tw.link=1` (Z-Link), `persist.tw.disp=0`, `persist.tw.iis=1`, `sys.tw.location=2`, `sys.tw.location.at6558=1` (GPS AT6558), `persist.display.smart_backlight=1`, `persist.display.enhance_mode=0`. `ro.hardware=ro.boot.hardware=sun8iw11p1`.
+**Inventaire** : 79 paquets (68 en `/system`, 9 en `/data/app`). 
+- **Nouvelle appli Topway non documentée** : `com.tw.assistivetouch` (menu tactile flottant), en `/data/app` → **mise à jour par-dessus le système, donc illisible sans root** (comme `com.tw.core`, aussi en `/data/app`).
+- APK Topway **lisibles** (en `/system/priv-app`, récupérés) : `com.tw.service`, `com.tw.bt`, `com.tw.radio`, `com.tw.carchoose`, `com.tw.eq`, `com.tw.music`, `com.tw.video`, `com.tw.auxin`, `com.tw.keypad`, `com.tw.bootanimation`. `Launcher2.apk` = `com.android.launcher` (lanceur d'origine).
+- Tiers : Waze, Maps, Torque (`org.prowl.torque`), DAB (`com.ex.dabplayer.pad`), MuPDF, Pico TTS, FOTA.
+**Piège de copie (outil)** : `adb pull /system` (ou `/system/priv-app`) **avorte au premier fichier refusé** (ex. `build.prop`) et ne copie rien → copier **sous-dossier par sous-dossier**, et les APK système **un par un** par leur chemin (`grep /system/priv-app/*.apk` dans `pm list packages -f`). Toujours `export MSYS_NO_PATHCONV=1` sous Git Bash (sinon `/system` → `C:\Program Files\Git\system`).
+
+### Recherche d'un « interrupteur root » dans les applis Topway (07/11/2026, dexdump sur la sauvegarde) — AUCUN
+Analysé : `com.tw.carchoose`, `com.tw.service`, `Settings`, `com.tw.eq`, `com.tw.keypad`.
+- **Aucune** référence à `su`, Magisk, SuperUser, `setprop ro.secure 0`, ni toggle « activer root ». Pas de menu usine/ingénierie qui donnerait le root.
+- `Settings.apk` : seulement le toggle ADB standard AOSP (`EnableAdbPreferenceController`) et Factory Reset — rien de custom.
+- `com.tw.carchoose` : `android.uid.system`, contient `MCUActivity`/`MCUService` (debug MCU) et les activités `canboxupdate.*` (mise à jour CANbox), pas de root.
+- `com.tw.service` (uid système) : contient des commandes **exécutées en contexte root au démarrage** — `mount -o rw,remount /system`, `chown root.root /system/bin/gocsdk`, `ln /system/etc/goc/gocsdk… /system/bin/gocsdk`, `"OTA UPDATE FILE EXISTS! DO RM-FILE"`. C'est l'init/setup du système (symlinks gocsdk, droits), **pas un interrupteur accessible à l'utilisateur**. Pose aussi `persist.tw.kill`, `persist.tw.sleepmode`, `persist.systemnavi`, `persist.camera.mirror1/2`.
+**Conclusion** : le root ne s'obtient pas par un réglage de l'interface. Il reste les voies d'amorçage : **Magisk sur `boot.img`** (32 Mo) ou **FEL**, toutes deux via le firmware TW11.

@@ -22,6 +22,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 | `Journal` | 10 000 dernières lignes (v0.11), écrites par ajout en fin de fichier (réécriture complète au-delà de 12 000 lignes ou sur `flushNow`), `files/journal.txt` + `Android/data/fr.sandero.launcher/files/journal.txt` |
 | `Safe` | Marqueurs d'étapes risquées, mode sans échec, journal des plantages |
 | `ToolsActivity` | Outils par catégories (menu à gauche, panneau à droite) : export USB, sauvegardes, explorateur, journal, heure, thème, intégration Topway, caméra |
+| `AdbDiag` | Diagnostic ADB sans root (propriétés, ports en écoute, mode USB), essais d'ouverture d'ADB Wi-Fi, écran de choix USB ; journal `[ADB]` |
 | `SystemActivity` | Allègement : mémoire, applis à désactiver, animations, root |
 | `TwMonitorActivity` | Moniteur TWUtil (écoute, simulations) |
 | `Obd`, `ObdPids`, `ObdUsb`, `ObdActivity` | OBD2 par module ELM327 (Bluetooth / Wi-Fi / USB), écran Outils → OBD2 — voir skill `sandero-obd` |
@@ -61,8 +62,11 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.18 — 7 nov. 2026)
-**À vérifier (v0.18)** : Outils → Système et démarrage → « Options développeur / débogage USB » : écran Android sans mot de passe ? lignes `[DEV]` du journal (écriture `adb_enabled` acceptée / refusée).
+## État du projet (v0.19 — 7 nov. 2026)
+**Vérifié (v0.19, voiture)** : « Essayer d'ouvrir ADB par Wi-Fi » (`AdbDiag.tryEnable`) ouvre le port 5555 sans root ; le PC le joint (`adb connect 192.168.0.103:5555`), reste à accepter la fenêtre RSA sur l'écran. Prise USB en mode hôte (`otg_role=usb_host`), donc pas d'ADB par câble.
+**À faire** : ADB Wi-Fi relancé au démarrage (le port est perdu au redémarrage).
+**Root (sûr, 07/11)** : pas de root par ADB — `adb root` n'élève pas (adbd sans `ALLOW_ADBD_ROOT`), `su` AOSP non élévateur. Image des partitions bloquée. Pistes : Magisk sur boot.img du firmware, mode FEL Allwinner, menu usine (voir `topway-systeme`).
+**Vérifié (v0.18, voiture)** : « Options développeur / débogage USB » ouvre l'écran Android sans mot de passe ; `adb_enabled` passe à 1 ; l'écriture directe est refusée (`WRITE_SECURE_SETTINGS`). Mais le PC ne voit rien en USB (prise en mode hôte) et `adb connect IP:5555` est refusé (adbd n'écoute pas en TCP).
 
 Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
 
@@ -120,6 +124,8 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.14 | Radio : tirets au lieu de la fréquence | Format 0x0401 mal supposé (c'est un `byte[4]`, pas arg1/arg2) | 0.14 : fréquence lue dans `{drapeaux, 0xf8, haut, bas}`, en 10 kHz |
 | 0.15 | Curseur de volume pris par le haut : le panneau des notifications s'ouvre | Barre d'état visible, glissement vers le bas capté par le système | 0.16 : accueil en plein écran immersif collant, remasquage des barres, bouton dans Outils |
 | 0.15 | (demande) Écran petit, texte illisible de loin | — | `UiScale` x1–x3 dans Outils, plafonds par élément, hauteurs libres dès x>1 |
+| 0.18 | ADB injoignable depuis le PC (rien en USB, 5555 refusé en Wi-Fi) | Prise USB en mode hôte ; adbd sans port TCP | 0.19 : `setprop service.adb.tcp.port 5555` + `ctl.restart adbd` depuis l'appli (accepté sans root, build eng) → ADB Wi-Fi |
+| 0.18 | `car_photo.png` de nouveau absente de `drawable-nodpi/` (APK 537 Ko au lieu de 1,15 Mo) | Fichier non versionné, perdu à nouveau | Restaurée depuis `Sandero_V018.apk` ; **comparer la taille de l'APK à la précédente avant livraison** |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -144,3 +150,6 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : v0.16 compilée (plein écran de l'accueil), non testée. V015 poussée sur GitHub le même jour.
 - 2026-11-07 : v0.17 compilée (Outils par catégories), non testée. Piège : j'ai écrasé Sandero_V016.apk (déjà poussée) en recompilant avant d'avoir changé le versionCode ; restaurée par `git checkout`. Toujours incrémenter le versionCode AVANT de compiler après un push.
 - 2026-11-07 : v0.18 compilée (bouton Options développeur : contournement du mot de passe Topway, 123456 refusé), non testée.
+- 2026-11-07 : v0.19 compilée (`AdbDiag` : diagnostic ADB, essai ADB Wi-Fi, choix du mode USB), non testée. Photo de la voiture restaurée depuis V018 avant compilation.
+- 2026-11-07 (V019, voiture) : ADB Wi-Fi OK (`AdbDiag.tryEnable` ouvre 5555 sans root, PC connecté après RSA). Shell uid 2000. **Root non obtenu** : `adb root` inopérant (adbd sans ALLOW_ADBD_ROOT), `su` AOSP non élévateur. `dd` des partitions impossible sans root ; `Sauvegarde_ADB.bat` à revoir (dépend de `adb root`). Pistes root notées dans `topway-systeme`.
+- 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.

@@ -11,11 +11,39 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 019 · Sandero_V019.apk · 07/11/2026
+
+**Contenu** : ADB. Nouvelle classe `AdbDiag` ; trois boutons dans Outils → Système et démarrage :
+- « Diagnostic ADB (USB et Wi-Fi) » : lit sans root `adb_enabled`, les propriétés (`init.svc.adbd`, `service.adb.tcp.port`, `persist.adb.tcp.port`, `sys.usb.config`, `sys.usb.state`, `ro.adb.secure`…), les adresses IPv4, les ports TCP en écoute (`/proc/net/tcp`, port 5555 ouvert ou non), un essai de connexion à soi-même sur 5555, l'état USB (annonce `USB_STATE`, périphériques branchés = mode hôte), le sysfs du contrôleur (`/sys/class/android_usb`, `/sys/class/udc`, `/sys/devices/platform/soc/usbc0`).
+- « Essayer d'ouvrir ADB par Wi-Fi » : tente `setprop service.adb.tcp.port 5555` puis `ctl.restart adbd` (refus attendus sans root), puis avec `su` si présent ; relit ensuite le port.
+- « Choix du mode USB (Android) » : essaie d'ouvrir `UsbModeChooserActivity`, `UsbSettings`, `USB_SETTINGS`.
+Tout est journalisé en `[ADB]`. Aucun accès à TWUtil, rien d'écrit au MCU ni dans le sysfs.
+- Ajout : `car_photo.png` (non versionnée) avait de nouveau disparu de `drawable-nodpi/` ; restaurée depuis `Sandero_V018.apk` avant de compiler (APK de 537 Ko sans, 1,15 Mo avec).
+
+**Retours** : (07/11, avant V019) `adb connect 192.168.0.103:5555` → « refusée » : le Wi-Fi marche, mais `adbd` n'écoute pas en TCP (sûr). Prise USB en mode hôte : le PC voit aucun périphérique (sûr).
+**À vérifier (voiture)** : lancer « Diagnostic ADB » Wi-Fi connecté, puis exporter le journal (lignes `[ADB]`). Savoir surtout : `init.svc.adbd`, `sys.usb.config`, contenu de `/sys/devices/platform/soc/usbc0`, et si l'essai d'ouverture de 5555 réussit.
+
+**Retours (07/11/2026, journal 16:17-16:23, sûr)** :
+- **Marche** : « Essayer d'ouvrir ADB par Wi-Fi » **réussit sans root** : `SystemProperties.set("service.adb.tcp.port","5555")` puis `ctl.restart adbd` sont acceptés ; relu = 5555, port 5555 en écoute, `192.168.0.103:5555` répond. Depuis le PC, `adb connect` donne `unauthorized` (attente de la fenêtre RSA sur l'écran de l'autoradio).
+- **Marche** : « Diagnostic ADB » : `init.svc.adbd=running`, `sys.usb.config=adb`, `ro.adb.secure=1`, `ro.debuggable=1`, `ro.build.type=eng`, `su` présent en `/system/xbin/su` (mais « Avec root : indisponible »), ports en écoute avant l'essai [5038, 14035].
+- Prise USB : `/sys/devices/platform/soc/usbc0/otg_role = usb_host` (fichiers `usb_host`, `usb_device`, `usb_null` présents mais illisibles) ; un périphérique branché (VID 058f PID 6387, clé USB) ; `USB_STATE connected=false`. Contrôleur `1c13000.udc-controller`.
+- « Choix du mode USB » : `UsbModeChooserActivity` refusé (SecurityException), `UsbSettings` s'ouvre.
+- **Suite (connexion PC + root, sûr)** : `adb connect 192.168.0.103:5555` → `device` après acceptation de la fenêtre RSA. Shell = `uid=2000(shell)`. **Pas de root** : `adb root` n'élève pas (`service.adb.root` reste vide, adbd sans `ALLOW_ADBD_ROOT`) ; le `su` de `/system/xbin/su` est le `su` AOSP non élévateur (`setgid failed` depuis shell). `/system`,`/vendor` en ro, partitions interdites au shell → **image `dd` impossible sans root** ; `Sauvegarde_ADB.bat` ne peut pas marcher tel quel. Voir skill `topway-systeme` → Root pour les pistes (Magisk/FEL/menu usine).
+- **Déjà gagné sans root** : `adb shell pm disable-user com.android.launcher` (virer le lanceur d'origine) et logcat/screencap deviennent possibles par Wi-Fi.
+- **À corriger / idée V020** : le port 5555 est perdu au redémarrage de l'autoradio (propriété non persistante) → bouton « ADB Wi-Fi au démarrage » (relancer le `setprop` dans `BootReceiver` si l'option est cochée) ; la fenêtre RSA doit être acceptée une fois (« Toujours autoriser »).
+
 ## 018 · Sandero_V018.apk · 07/11/2026
 
 **Contenu** : Outils → Système et démarrage → « Options développeur / débogage USB » (`ToolsActivity.openDeveloper`). Contourne le mot de passe Topway (123456 refusé) : (1) tente `Settings.Global.putInt(adb_enabled, 1)` et `development_settings_enabled` (permission `WRITE_SECURE_SETTINGS` déclarée dans le manifeste, accordée seulement si le système l'autorise) ; (2) ouvre l'écran Android des options développeur (`ACTION_APPLICATION_DEVELOPMENT_SETTINGS`, puis `DevelopmentSettings`, puis `DevelopmentSettingsActivity`), à défaut « À propos » (7 appuis sur Numéro de build). Tout est journalisé en `[DEV]`.
 - **À vérifier (voiture)** : l'écran Android s'ouvre-t-il sans mot de passe ? `[DEV] écriture adb_enabled=1 acceptée` ou `refusée` ? Aucun ordinateur n'est nécessaire pour cette étape ; il en faut un ensuite pour `adb`.
 - Non testé sur la voiture ni sur l'émulateur.
+
+**Retours (07/11/2026, journal)** :
+- **Marche (sûr)** : le bouton ouvre l'écran Android des options développeur sans mot de passe (`ACTION_APPLICATION_DEVELOPMENT_SETTINGS`). L'utilisateur y a activé le débogage USB : `adb_enabled` passe de 0 à 1 (vu à 15:38).
+- **Ne marche pas (sûr)** : l'écriture directe de `adb_enabled` est refusée (`WRITE_SECURE_SETTINGS` non accordée), comme prévu. Le passage par l'écran Android suffit.
+- Malgré `adb_enabled=1`, le PC (câble USB-C vers USB-A de manette Xbox) se recharge mais ne voit aucun périphérique : la prise USB de l'autoradio est en mode hôte. Pas de root (Outils).
+- Plantage 15:13:34 `DeadSystemException` (`ViewRootImpl.performTraversals`) : c'est le système Android qui est tombé, puis il a redémarré (BOOT_COMPLETED à 15:14:05). Sandero subit le plantage, il n'en est pas la cause.
+- Caméra : 0 à 3 en échec (`Fail to connect to camera service`), caméra 4 donne l'image, comme attendu.
 
 ## 0.17 · Sandero_V017.apk · 07/11/2026
 **Contenu**
