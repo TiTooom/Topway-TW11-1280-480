@@ -9,6 +9,11 @@ APP From autoradio/*
 INFOS From autoradio/*
 !INFOS From autoradio/README.md
 
+# Sauvegarde fichiers de l'autoradio par ADB (APK, framework, /system, /vendor, getprop…).
+# Contient des identifiants personnels : jamais sur GitHub.
+Backup From autoradio/*
+!Backup From autoradio/README.md
+
 # Exports faits avec les Outils de Sandero, s'ils sont copiés ailleurs
 SanderoExport_*/
 SanderoImage_*/
@@ -21,6 +26,11 @@ twutil_*.txt
 !release/
 !release/Sandero_V*.apk
 *.aab
+
+# Firmware système de l'autoradio publié exprès (décision du propriétaire, 07/11/2026) :
+# APK système AOSP + Topway de l'unité, infos nettoyées des identifiants.
+# PAS les APK Google (Play, GMS, Chrome…), exclus pour droit d'auteur.
+!autoradio_TW11_systeme/**/*.apk
 
 # --- Android / Gradle ---------------------------------------------------------
 SanderoLauncher/local.properties
