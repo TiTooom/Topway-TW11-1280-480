@@ -63,11 +63,30 @@ Vérifié le 04/11/2026 : Sandero remplace bien l'interface d'origine.
 ## Allègement
 Outils → Système et allègement : libérer la mémoire (`killBackgroundProcesses`, épargne com.tw.*, GMS, Waze, Maps), liste commentée des applis à désactiver (vert : TXZ, Google, impression, écrans de veille… ; rouge : FOTA, Play Store, lanceur d'origine), animations 0,5x/0x (root, sinon Options développeur).
 
+### Allègement par ADB (préparé 09/11/2026, jamais lancé sur la voiture)
+- **Choix du propriétaire** : seul le **Bluetooth** est utilisé ; garder l'explorateur de fichiers ; **aucune** navigation (ni Waze ni Maps), ni Play Store, ni Chrome, ni lecteurs USB/AUX/DAB, ni Torque, ni MuPDF, ni menu flottant. Méthode : **désactiver** (`pm disable-user --user 0`, réversible), pas supprimer (supprimer de /system demande le root et ne gagne que de l'espace disque).
+- `tools/allegement_liste.txt` (35 paquets, commentés, + liste « ne jamais ajouter »), `tools/Allegement_ADB.bat` (désactive, animations 0,5x par `settings put global`, mesure `dumpsys meminfo` + nombre de processus avant/après, suivi dans `autoradio/allegement/suivi_allegement.txt`), `tools/Allegement_Annuler.bat` (tout réactiver).
+- **À garder absolument** : `com.tw.service`, `bt`, `keypad`, `eq`, `carchoose`, `com.tw.radio` (ouvert par `MainActivity`), SystemUI, Settings, Shell (ADB), `com.android.bluetooth` (OBD2), téléphonie/Telecom (risque de boucle de plantage), Contacts (répertoire BT), MediaProvider, ExternalStorage, PackageInstaller, WebView, ExtServices, clavier, FusedLocation.
+- Sandero n'utilise **pas** les services Google (heure par `GPS_PROVIDER` seulement) : désactiver GMS est sans effet sur lui (lu dans le code).
+- Vague 2 à tester : `com.tw.core` (rôle exact inconnu).
+- Liste d'Outils → Système et allègement (`SystemActivity`) alignée sur ce choix en **V020** (GMS, Maps, Waze, menu flottant, lecteurs Topway ajoutés ; plus épargnés par « Libérer la mémoire »).
+- RAM : 1 Go, ~430 Mo disponibles au relevé du 07/11 (avant allègement).
+
 ## Sauvegarde / export
 - Outils → Exporter toutes les applis (APK) / infos + framework / tout /system / **Sauvegarde complète (sans root)** (applis + /system + infos + réglages Android) — dossiers `SanderoExport_*` sur la clé.
 - Image des partitions : Outils (root, `dd` vers `/mnt/media_rw/<clé>`, morceaux de 3 Go, MD5) ou `tools/Sauvegarde_ADB.bat` (PC, `adb root` + `exec-out dd`). **Bloqué faute de root** (voir Sécurité → Root) : `adb root` n'élève pas, `dd` sur `/dev/block/by-name/*` = Permission denied. Reste faisable sans root : la **Sauvegarde complète** d'Outils (applis + /system lisible + infos + réglages).
 - Plantage complet : seul le firmware Topway (TW11-1280x480-X, T3L) + PhoenixSuit (Allwinner) permet de réinstaller.
-- Les exports contiennent des données personnelles (UID, licence, MAC) : à garder hors du dépôt (`INFOS From autoradio/`, ignoré par Git).
+
+### Firmware « Allwinner T3-P1 » trouvé sur GitHub (analysé 09/11/2026, jamais flashé)
+Dossier `autoradio/firmware_T3-P1_THEME1_20231116/` (versionné, `system.new.dat.br` en Git LFS). C'est un **paquet OTA Android par blocs** (zip de recovery décompressé), pas une image PhoenixSuit.
+- **Contenu** : `system` (827 Mo) + `vendor` (56 Mo) + `boot.img` (16 Mo). **Ne touche pas** bootloader, env, dto, recovery, misc, private ni /data (seulement `resize2fs` sur UDISK, sans effacement).
+- **Identité (sûr, lu dans les images)** : `ro.product.device=t3-p1` (le script refuse tout autre appareil), `t3_p1-eng` test-keys, Android 8.1 OPM1.171019.026, `ro.product.firmware=T3-o-mr1-v1.0rc1`, noyau **4.9.56** (compilé 16/11/2023), `selinux permissive`, `ro.fota.oem=TOPWAY`, plateforme T3L, densité 160, ressources `drawable-1280x480`. **Version Topway `V8.1.1_20231116.185024_THEME1`**, FOTA `THEME1_0000` (unité : `V8.1.1_20220907.180036_TW11-1280x480-X`, `TW11-1280x480-X_0000`).
+- **Comparaison avec l'unité** : même base Android/BSP, mêmes dossiers d'applis Topway (`com.tw.bt_305c`, `radio_78cc`, `service_a5a4`, `carchoose_3f18`…). Identiques octet par octet : auxin, ba, carchoose, keypad. Différents (version plus récente sous le même nom) : bt, eq, music, radio, service, video, **Launcher2**, Settings, SystemUI. En plus : `com.tw.color`, `dvd`, `recorder` (dashcam), `tv`, `Zlinkw`.
+- **Écart à vérifier (probable)** : l'unité a `ro.sf.rotation=270`, aucune valeur `ro.sf.rotation=` n'est écrite dans system/vendor de ce firmware → soit elle vient d'une partition que l'OTA ne touche pas (env/bootloader), soit l'écran serait mal orienté après flash.
+- **Sauvegarder le `boot` d'origine avant tout** : voir le skill `topway-image-systeme` (firmware vendeur PODOFO, `fastboot boot` d'un boot Magisk en RAM, FEL).
+- **Usage recommandé** : (1) source du **`boot.img` à patcher par Magisk** (même noyau 4.9.56, même appareil, risque modéré : ramdisk de 2023) ; (2) secours en cas de système cassé. **Pas** comme mise à jour de confort : variante « THEME1 » (autre interface, autre client), passage de 2022 à 2023, sans retour possible sans le firmware TW11 d'origine.
+- **Flash** : par le recovery (zip resigné ou recovery acceptant les test-keys ; l'`otacert` est la clé de test AOSP `61:ED:37:7E…`, le recovery Topway risque de refuser). Ne rien écrire avant d'avoir une sauvegarde de `boot` (32 Mo).
+- Les exports bruts contiennent des identifiants (numéro de série, licence OTA, secret réseau, MAC) : les **masquer** avant de les verser dans `autoradio/systeme_*/infos/` ; dumps bruts dans `autoradio/dumps/` (ignoré). Firmware de l'unité : `autoradio/systeme_TW11_20220907/`.
 
 ## Journal des vérifications
 - 2026-11-04 : propriétés, partitions, signatures relevées ; lanceur remplacé avec succès ; fuseau Shanghai confirmé dans le journal.
@@ -104,4 +123,7 @@ Analysé : `com.tw.carchoose`, `com.tw.service`, `Settings`, `com.tw.eq`, `com.t
 - `Settings.apk` : seulement le toggle ADB standard AOSP (`EnableAdbPreferenceController`) et Factory Reset — rien de custom.
 - `com.tw.carchoose` : `android.uid.system`, contient `MCUActivity`/`MCUService` (debug MCU) et les activités `canboxupdate.*` (mise à jour CANbox), pas de root.
 - `com.tw.service` (uid système) : contient des commandes **exécutées en contexte root au démarrage** — `mount -o rw,remount /system`, `chown root.root /system/bin/gocsdk`, `ln /system/etc/goc/gocsdk… /system/bin/gocsdk`, `"OTA UPDATE FILE EXISTS! DO RM-FILE"`. C'est l'init/setup du système (symlinks gocsdk, droits), **pas un interrupteur accessible à l'utilisateur**. Pose aussi `persist.tw.kill`, `persist.tw.sleepmode`, `persist.systemnavi`, `persist.camera.mirror1/2`.
+- 2026-11-09 : analyse du firmware OTA « Allwinner T3-P1 » (GitHub) : Topway, même appareil `t3-p1` et même noyau 4.9.56, variante THEME1 du 16/11/2023 ; compatible au niveau matériel/Android, interface différente. Voir Sauvegarde → Firmware « Allwinner T3-P1 ».
+- 2026-11-09 : scripts d'allègement ADB préparés (35 paquets, choix « Bluetooth seulement »), pas encore lancés. Voir Allègement par ADB.
+
 **Conclusion** : le root ne s'obtient pas par un réglage de l'interface. Il reste les voies d'amorçage : **Magisk sur `boot.img`** (32 Mo) ou **FEL**, toutes deux via le firmware TW11.

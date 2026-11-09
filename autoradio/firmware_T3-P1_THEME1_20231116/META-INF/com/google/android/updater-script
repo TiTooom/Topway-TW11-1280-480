@@ -1,0 +1,16 @@
+getprop("ro.product.device") == "t3-p1" || abort("E3004: This package is for \"t3-p1\" devices; this is a \"" + getprop("ro.product.device") + "\".");
+assert_boot_version(0);
+resize2fs("/dev/block/by-name/UDISK");
+ui_print("Target: Allwinner/t3_p1/t3-p1:8.1.0/OPM1.171019.026/20231116-184945:eng/test-keys");
+show_progress(0.650000, 0);
+ui_print("Patching system image unconditionally...");
+block_image_update("/dev/block/by-name/system", package_extract_file("system.transfer.list"), "system.new.dat.br", "system.patch.dat") ||
+  abort("E1001: Failed to update system image.");
+show_progress(0.100000, 0);
+ui_print("Patching vendor image unconditionally...");
+block_image_update("/dev/block/by-name/vendor", package_extract_file("vendor.transfer.list"), "vendor.new.dat.br", "vendor.patch.dat") ||
+  abort("E2001: Failed to update vendor image.");
+show_progress(0.050000, 5);
+package_extract_file("boot.img", "/dev/block/by-name/boot");
+show_progress(0.200000, 10);
+set_progress(1.000000);

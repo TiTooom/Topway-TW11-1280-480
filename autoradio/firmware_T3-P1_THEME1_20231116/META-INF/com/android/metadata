@@ -1,0 +1,5 @@
+ota-required-cache=0
+ota-type=BLOCK
+post-build=Allwinner/t3_p1/t3-p1:8.1.0/OPM1.171019.026/20231116-184945:eng/test-keys
+post-timestamp=1700131783
+pre-device=t3-p1

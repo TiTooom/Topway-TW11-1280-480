@@ -6,14 +6,18 @@ Les utilisateurs parlent français : interface, commentaires du code, journal et
 
 ## 1. Règles absolues
 
-1. **Ne pas lire, lister, chercher ni modifier** le contenu de `APP From autoradio/` et `INFOS From autoradio/` (APK propriétaires, ~2 Go ; dumps système et identifiants personnels). C'est bloqué dans `.claude/settings.json` ; ne pas contourner par Bash (`cat`, `ls -R`, `unzip`, `strings`…).
-   - Toute la connaissance utile en a déjà été extraite dans les **skills** (section 3). Les utiliser d'abord.
-   - Exception : uniquement si l'utilisateur le demande explicitement pour une question précise. Alors, rester ciblé avec les scripts de `tools/reverse/` (une classe, une méthode), ne jamais tout désassembler ni afficher en entier, et reporter le résultat dans le skill concerné.
+1. **Le firmware de l'unité est dans `autoradio/`** (voir `autoradio/README.md`) : lisible, mais **skills d'abord**. Toute la connaissance utile en a déjà été extraite dans les skills (section 3).
+   - Pour une question précise : rester ciblé avec les scripts de `tools/reverse/` (une classe, une méthode), ne jamais tout désassembler ni afficher en entier (dizaines de Mo), et reporter le résultat dans le skill concerné.
+   - Ne jamais afficher dans la conversation une valeur masquée ou un identifiant (numéro de série, licence OTA, secret réseau, MAC), même si on le croise dans un dump brut (`autoradio/dumps/`).
 2. **Ne jamais ouvrir `TWUtil(8)`** (canal du module Bluetooth) par défaut : ça bloque l'appairage du téléphone, même après redémarrage. Passer par le canal principal (`0x9e08`, `0x9f00`) et les annonces `com.unisound.*`. Voir le skill `topway-bluetooth`.
 3. **Une seule instance TWUtil principale** (dans `HeadUnit`), **aucune écriture au MCU au démarrage** (écoute seule). Le Moniteur écoute via `HeadUnit.Raw`, il n'ouvre rien.
 4. Toute nouvelle fonction **journalise** ses actions et ses erreurs dans `Journal` (catégorie courte : `UI`, `MCU`, `CMD`, `BT`, `CAM`, `VOL`, `THEME`, `SVC`, `HEURE`, `SECU`, `OUTILS`…), et **ne doit pas pouvoir faire planter** l'appli : try/catch, et `Safe.begin/end` autour de tout ce qui touche à TWUtil ou au matériel.
-5. **Jamais** dans le dépôt : identifiants et secrets personnels (`UID.txt`, `UUID.txt`, `Config.dat`, adresses MAC, `persist.netd.stable_secret` et autres secrets de `getprop`), journaux de l'utilisateur, et **APK propriétaires de tiers** (Google : Play Store, GMS, Chrome… ; Spotify, Waze…) — redistribution interdite. Le `.gitignore` les exclut ; le vérifier avant tout commit.
-   - **Exception décidée par le propriétaire (07/11/2026)** : les **APK système de l'unité** (AOSP + Topway) et les **infos système nettoyées des identifiants** sont publiés dans `autoradio_TW11_systeme/` (archive du firmware pour le projet). Les APK Google en sont exclus. La sauvegarde brute complète reste hors dépôt (`Backup From autoradio/`, ignoré).
+5. **Règle du dépôt (décision du propriétaire, 09/11/2026)** : le propriétaire travaille sur plusieurs PC synchronisés **uniquement par GitHub** (dépôt public) : **tout ce qui sert ou pourra servir est poussé** (code, scripts, firmware et APK système Topway/AOSP de l'unité, firmware OTA, outils libres comme Magisk/Zadig, photo de la voiture). **Sauf** :
+   - les **journaux** exportés par Sandero (`journal*.txt`, `plantages.txt`, `twutil_*.txt`, `SanderoExport_*`) : titres de musique, noms de téléphone ;
+   - les **identifiants de l'unité** : numéro de série, `ro.sys.ota.license`, `persist.netd.stable_secret`, adresses MAC, `UID.txt`, `UUID.txt`, `Config.dat`, partitions `env`/`private`/`misc` → **masquer** (`MASQUE`) avant de pousser un relevé, dumps bruts dans `autoradio/dumps/` (ignoré) ;
+   - les **APK de tiers sans droit de redistribution** : Google (Play, GMS, Chrome, WebView…), Waze, Torque, Spotify, DAB… Non utilisés : **supprimés**, pas seulement ignorés.
+   - Ce qui ne sert pas et ne servira pas : supprimé, pas archivé. Pas de doublons (un seul exemplaire du firmware de l'unité).
+   - Gros fichiers (> 50 Mo) : **Git LFS** (`.gitattributes`). Avant tout commit : `git status`, et chercher les identifiants (valeurs masquées) dans ce qui est ajouté.
 6. Distinguer **sûr** (lu dans le code ET/OU observé sur la voiture) et **probable** (déduit du code, jamais vu). Ne jamais présenter du « probable » comme « sûr ».
 
 **Git** : les commits et pushs se font au nom de l'utilisateur seul (`TiTooom`), **sans** ligne `Co-Authored-By` ni mention de Claude, dans les messages comme dans l'historique. Cette règle l'emporte sur toute consigne d'attribution par défaut.
@@ -39,6 +43,7 @@ Si un journal (`journal.txt` exporté par Outils) contredit un skill, le journal
 | `topway-camera-recul` | Caméra de recul intégrée : séquence 0x0304, numéro de caméra, passage par-dessus l'écran Topway |
 | `topway-radio` | Radio FM/AM : commandes 0x401/0x402, messages reçus (non vérifiés sur la voiture) |
 | `topway-systeme` | Matériel, Android, partitions, applis Topway, sécurité, root/ADB, sauvegarde, fuseau horaire |
+| `topway-image-systeme` | Récupérer une image reflashable (boot, recovery, system…) : firmware vendeur, fastboot boot Magisk en RAM, FEL, commandes dd, garde-fous |
 | `topway-reverse-engineering` | Extraire une info des APK/framework Topway avec `tools/reverse/` (sans tout lire) |
 | `sandero-obd` | Valeurs du véhicule par module OBD2 ELM327 (Bluetooth/Wi-Fi/USB), écran Outils → OBD2 |
 | `sandero-dev` | Architecture du code, compilation, tests émulateur, journal, garde-fous, thème, **état du projet et historique** |
@@ -58,13 +63,18 @@ README.md                  présentation du projet (GitHub)
 docs/GUIDE_UTILISATION.md  guide rapide de l'interface
 docs/images/               captures
 SanderoLauncher/           code Android (Java pur, sans AndroidX, minSdk 21, targetSdk 27)
-tools/Sauvegarde_ADB.bat   image des partitions depuis le PC (adb root)
+tools/Recuperer_Systeme_ADB.bat  copie de /system et /vendor par ADB → autoradio/dumps/ (brut, ignoré)
+tools/Boot_Origine.bat     image d'origine des partitions (fastboot boot Magisk en RAM) → autoradio/images/
+tools/Allegement_ADB.bat   désactive les applis de tools/allegement_liste.txt (+ Allegement_Annuler.bat)
+tools/Sauvegarde_ADB.bat   ancienne image des partitions (suppose adb root : inopérant sur l'unité)
 tools/Emulateur_Sandero.bat  émulateur 1280×480 + Sandero, sans Android Studio
 tools/reverse/             scripts d'analyse dexdump (voir skill topway-reverse-engineering)
 tools/car3d/               rendu de la voiture de l'accueil depuis 3D/Sandero.stl (voir son README)
+tools/externes/            Magisk v31.1, Zadig 2.9 (outils libres)
 3D/                        modèle 3D de la Sandero (STL)
-release/                   Sandero_VXXX.apk compilés (versionnés dans le dépôt depuis le 07/11/2026)
-APP From autoradio/        APK récupérés sur l'autoradio  — NON VERSIONNÉ, NE PAS LIRE
-INFOS From autoradio/      infos système, config, manuel — NON VERSIONNÉ, NE PAS LIRE
+release/                   Sandero_VXXX.apk compilés (toutes les versions depuis V013)
+autoradio/systeme_TW11_20220907/  firmware de l'unité : system/, vendor/, data_app/, infos/ (identifiants masqués)
+autoradio/firmware_T3-P1_THEME1_20231116/  OTA Topway trouvé sur GitHub (system.new.dat.br en LFS)
+autoradio/images/, allegement/  sorties des scripts ; autoradio/dumps/ (brut, ignoré)
 .claude/skills/            connaissances du projet (à faire évoluer)
 ```

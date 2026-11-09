@@ -1,0 +1,80 @@
+paquet;nom;version;systeme;chemin
+com.abupdate.fota_demo_iot;Mise à niveau;2.0.8;oui;/system/app/FOTA_CarWithIcon/FOTA_CarWithIcon.apk
+com.google.android.ext.services;Android Services Library;1;oui;/system/priv-app/GoogleExtServices/GoogleExtServices.apk
+com.android.providers.telephony;Configuration du réseau mobile;8.1.0;oui;/system/priv-app/TelephonyProvider/TelephonyProvider.apk
+com.tw.service;TW;1.0;oui;/system/priv-app/com.tw.service_a5a4/com.tw.service_a5a4.apk
+com.android.providers.calendar;Stockage de l'agenda;8.1.0;oui;/system/priv-app/CalendarProvider/CalendarProvider.apk
+com.android.providers.media;Stockage multimédia;8.1.0;oui;/system/priv-app/MediaProvider/MediaProvider.apk
+com.google.android.ext.shared;Android Shared Library;1;oui;/system/app/GoogleExtShared/GoogleExtShared.apk
+com.tw.keypad;SettingWheel;1.01;oui;/system/priv-app/com.tw.keypad_xt/com.tw.keypad_xt.apk
+com.android.wallpapercropper;com.android.wallpapercropper;8.1.0;oui;/system/priv-app/WallpaperCropper/WallpaperCropper.apk
+com.android.launcher;Lanceur d'applications;8.1.0;oui;/system/priv-app/Launcher2/Launcher2.apk
+com.tw.assistivetouch;EasyTouch;1.0;non;/data/app/com.tw.assistivetouch-c3mbS6rWTDJXh3iBfviHiQ==/base.apk
+android.auto_generated_rro__;android.auto_generated_rro__;1.0;oui;/vendor/overlay/framework-res__auto_generated_rro.apk
+com.android.externalstorage;Stockage externe;8.1.0;oui;/system/priv-app/ExternalStorageProvider/ExternalStorageProvider.apk
+com.android.htmlviewer;Visionneuse HTML;8.1.0;oui;/system/app/HTMLViewer/HTMLViewer.apk
+com.android.companiondevicemanager;Companion Device Manager;8.1.0;oui;/system/app/CompanionDeviceManager/CompanionDeviceManager.apk
+com.android.mms.service;MmsService;8.1.0;oui;/system/priv-app/MmsService/MmsService.apk
+com.android.providers.downloads;Gestionnaire de téléchargement;8.1.0;oui;/system/priv-app/DownloadProvider/DownloadProvider.apk
+com.tw.bootanimation;Animation de démarrage;1.0;oui;/system/priv-app/com.tw.ba_aa8e/com.tw.ba_aa8e.apk
+com.android.defcontainer;Package Access Helper;8.1.0;oui;/system/priv-app/DefaultContainerService/DefaultContainerService.apk
+com.tw.carchoose;Car Choose;V1.2.15_220819;oui;/system/priv-app/com.tw.carchoose_3f18/com.tw.carchoose_3f18.apk
+com.android.providers.downloads.ui;Téléchargements;8.1.0;oui;/system/app/DownloadProviderUi/DownloadProviderUi.apk
+com.android.vending;Google Play Store;29.2.15-21 [0] [PR] 426536134;oui;/system/priv-app/Phonesky/Phonesky.apk
+com.android.pacprocessor;PacProcessor;8.1.0;oui;/system/app/PacProcessor/PacProcessor.apk
+com.android.certinstaller;Programme d'installation du certificat;8.1.0;oui;/system/app/CertInstaller/CertInstaller.apk
+android;Système Android;8.1.0;oui;/system/framework/framework-res.apk
+com.android.backupconfirm;com.android.backupconfirm;8.1.0;oui;/system/priv-app/BackupRestoreConfirmation/BackupRestoreConfirmation.apk
+com.waze;Waze;4.30.0.1;non;/data/app/com.waze-PIEY8kxeSmDL-3H1WuZRNw==/base.apk
+com.android.provision;com.android.provision;8.1.0;oui;/system/priv-app/Provision/Provision.apk
+com.android.statementservice;Intent Filter Verification Service;1.0;oui;/system/priv-app/StatementService/StatementService.apk
+com.android.systemui.theme.dark;Dark;1.0;oui;/vendor/overlay/SysuiDarkTheme/SysuiDarkThemeOverlay.apk
+com.android.systemui.plugins;com.android.systemui.plugins;8.1.0;oui;/system/app/PluginDummyLib/PluginDummyLib.apk
+com.tw.twfileexplore;Gestionnaire de fichiers;V 1.0.2.2020907;oui;/system/priv-app/TWFileExplore/TWFileExplore.apk
+com.android.providers.settings;Stockage des paramètres;8.1.0;oui;/system/priv-app/SettingsProvider/SettingsProvider.apk
+com.android.sharedstoragebackup;com.android.sharedstoragebackup;8.1.0;oui;/system/priv-app/SharedStorageBackup/SharedStorageBackup.apk
+com.android.printspooler;Spouler impress.;8.1.0;oui;/system/app/PrintSpooler/PrintSpooler.apk
+com.android.dreams.basic;Écrans de veille interactifs basiques;8.1.0;oui;/system/app/BasicDreams/BasicDreams.apk
+com.android.inputdevices;Input Devices;8.1.0;oui;/system/priv-app/InputDevices/InputDevices.apk
+com.google.android.apps.maps;Maps;10.75.2;non;/data/app/com.google.android.apps.maps-bupagn8PQcYwgZJvC37FhA==/base.apk
+com.google.android.webview;Android System WebView;68.0.3440.91;oui;/system/app/WebViewGoogle/WebViewGoogle.apk
+com.android.server.telecom;Gestion des appels;8.1.0;oui;/system/priv-app/Telecom/Telecom.apk
+com.android.keychain;Porte-clés;8.1.0;oui;/system/app/KeyChain/KeyChain.apk
+com.android.chrome;Chrome;68.0.3440.91;oui;/system/app/Chrome/Chrome.apk
+com.android.printservice.recommendation;Print Service Recommendation Service;1.1.0;oui;/system/app/PrintRecommendationService/PrintRecommendationService.apk
+com.tw.core;TWCore;V7.3.0.240119;oui;/data/app/com.tw.core-BwD0QuHL8vfT--GfCgjyLw==/base.apk
+com.google.android.packageinstaller;Programme d'installation du kit;8.1.0-4879956;oui;/system/priv-app/GooglePackageInstaller/GooglePackageInstaller.apk
+com.google.android.gms;Services Google Play;26.43.30 (040300-1006944126);oui;/data/app/com.google.android.gms-WH4SjXe4HmLQ1yADK1joGQ==/base.apk
+com.google.android.gsf;Framework des services Google;8.1.0-4487743;oui;/system/priv-app/GoogleServicesFramework/GoogleServicesFramework.apk
+com.google.android.partnersetup;Configuration des partenaires Google;8.1.0-4771558;oui;/system/priv-app/GooglePartnerSetup/GooglePartnerSetup.apk
+com.svox.pico;Pico TTS;1.0;oui;/system/app/PicoTts/PicoTts.apk
+com.android.proxyhandler;ProxyHandler;8.1.0;oui;/system/priv-app/ProxyHandler/ProxyHandler.apk
+com.android.inputmethod.latin;Clavier Android (AOSP);8.1.0;oui;/system/app/LatinIME/LatinIME.apk
+com.android.managedprovisioning;Configuration du profil professionnel;8.1.0;oui;/system/priv-app/ManagedProvisioning/ManagedProvisioning.apk
+fr.sandero.launcher;Sandero;0.11;non;/data/app/fr.sandero.launcher-5v7OVUNJ_7IZinJrDaqzMQ==/base.apk
+com.tw.auxin;AUX;1.0;oui;/system/priv-app/com.tw.auxin_bf95/com.tw.auxin_bf95.apk
+com.tw.music;Musique;1.0;oui;/system/priv-app/com.tw.music_a41e/com.tw.music_a41e.apk
+com.tw.radio;Radio;1.0;oui;/system/priv-app/com.tw.radio_78cc/com.tw.radio_78cc.apk
+com.tw.video;Vidéo;1.0;oui;/system/priv-app/com.tw.video_869a/com.tw.video_869a.apk
+org.prowl.torque;Torque;1.6.62;non;/data/app/org.prowl.torque-ay7ECBnxm0UIqPMDxg8cbw==/base.apk
+com.android.wallpaper.livepicker;Sélecteur de fond d'écran animé;8.1.0;oui;/system/app/LiveWallpapersPicker/LiveWallpapersPicker.apk
+com.ex.dabplayer.pad;DAB+;3.25.42;non;/data/app/com.ex.dabplayer.pad-23baOhlIBqyeQMng_BJaMA==/base.apk
+com.tw.bt;Bluetooth;TW11.20220825;oui;/system/priv-app/com.tw.bt_305c/com.tw.bt_305c.apk
+com.tw.eq;Égaliseur;TW-48-purple-dev.20220827;oui;/system/priv-app/com.tw.eq_936a3/com.tw.eq_936a3.apk
+com.android.storagemanager;Gestionnaire d'espace de stockage;8.1.0;oui;/system/priv-app/StorageManager/StorageManager.apk
+com.android.bookmarkprovider;Bookmark Provider;8.1.0;oui;/system/app/BookmarkProvider/BookmarkProvider.apk
+com.android.settings;Paramètres;8.1.0;oui;/system/priv-app/Settings/Settings.apk
+com.android.vpndialogs;VpnDialogs;8.1.0;oui;/system/priv-app/VpnDialogs/VpnDialogs.apk
+com.android.phone;Données mobiles;8.1.0;oui;/system/priv-app/TeleService/TeleService.apk
+com.android.shell;Shell;8.1.0;oui;/system/priv-app/Shell/Shell.apk
+com.android.wallpaperbackup;com.android.wallpaperbackup;8.1.0;oui;/system/app/WallpaperBackup/WallpaperBackup.apk
+com.android.providers.blockednumber;Stockage des numéros bloqués;8.1.0;oui;/system/priv-app/BlockedNumberProvider/BlockedNumberProvider.apk
+com.android.providers.userdictionary;Dictionnaire personnel;8.1.0;oui;/system/app/UserDictionaryProvider/UserDictionaryProvider.apk
+com.android.emergency;Informations d'urgence;8.1.0;oui;/system/priv-app/EmergencyInfo/EmergencyInfo.apk
+com.android.location.fused;Fused Location;8.1.0;oui;/system/priv-app/FusedLocation/FusedLocation.apk
+com.android.systemui;L'interface;8.1.0;oui;/system/priv-app/SystemUI/SystemUI.apk
+com.android.bluetoothmidiservice;Bluetooth MIDI Service;8.1.0;oui;/system/app/BluetoothMidiService/BluetoothMidiService.apk
+com.android.bluetooth;Bluetooth;8.1.0;oui;/system/app/Bluetooth/Bluetooth.apk
+com.android.providers.contacts;Liste des contacts;8.1.0;oui;/system/priv-app/ContactsProvider/ContactsProvider.apk
+com.android.captiveportallogin;CaptivePortalLogin;8.1.0;oui;/system/app/CaptivePortalLogin/CaptivePortalLogin.apk
+com.artifex.mupdf;Manual;1.1;non;/data/app/com.artifex.mupdf-o6oCw5DeiavU2cBDJOlzzQ==/base.apk

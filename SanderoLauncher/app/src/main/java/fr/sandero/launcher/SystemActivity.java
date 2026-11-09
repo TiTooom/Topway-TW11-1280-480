@@ -41,9 +41,22 @@ import java.util.Locale;
  */
 public class SystemActivity extends Activity {
 
-    /** Applis lourdes ou inutiles en voiture, avec un conseil. Jamais les com.tw.* ni les services Google. */
+    /**
+     * Applis lourdes ou inutiles en voiture, avec un conseil. Aligné sur tools/allegement_liste.txt
+     * (choix du propriétaire, 09/11/2026 : Bluetooth seulement, ni navigation ni services Google).
+     * Jamais les com.tw.* indispensables (service, bt, keypad, eq, carchoose, radio).
+     */
     private static final String[][] CANDIDATES = {
             // paquet, conseil, niveau (1 conseillé, 2 si inutilisé, 3 prudence)
+            {"com.google.android.gms", "Services Google : le plus lourd en mémoire et en processeur. Sandero n'en a pas besoin (heure par le GPS seul).", "1"},
+            {"com.google.android.gsf", "Cadre des services Google (va avec les services Google).", "1"},
+            {"com.google.android.partnersetup", "Configuration partenaire Google.", "1"},
+            {"com.google.android.apps.maps", "Google Maps (a besoin des services Google).", "2"},
+            {"com.waze", "Waze.", "2"},
+            {"com.tw.assistivetouch", "Menu flottant Topway : une couche de plus par-dessus l'écran.", "1"},
+            {"com.tw.music", "Lecteur musique USB Topway (la musique Bluetooth n'en dépend pas).", "2"},
+            {"com.tw.video", "Lecteur vidéo USB Topway.", "2"},
+            {"com.tw.auxin", "Entrée AUX/AV Topway.", "2"},
             {"com.txznet.txz", "Assistant vocal TXZ : tourne en permanence et consomme beaucoup. Inutile si tu ne parles pas à l'autoradio.", "1"},
             {"com.txznet.smartadapter", "Module vocal PODOFO (va avec TXZ).", "1"},
             {"com.google.android.googlequicksearchbox", "Appli Google / Assistant : lourde et toujours active.", "1"},
@@ -239,12 +252,12 @@ public class SystemActivity extends Activity {
         int n = 0;
         for (ApplicationInfo ai : pm.getInstalledApplications(0)) {
             String p = ai.packageName;
-            // On garde : Sandero, Topway, Android, Google Play Services, claviers.
+            // On garde : Sandero, Topway, Android, claviers, Z-Link. Plus d'exception pour Google,
+            // Waze ni Maps (non utilisés, 09/11/2026).
             if (p.equals(getPackageName()) || p.startsWith("com.tw.") || p.equals("android")
                     || p.startsWith("com.android.systemui") || p.startsWith("com.android.phone")
                     || p.startsWith("com.android.bluetooth") || p.contains("inputmethod")
-                    || p.equals("com.google.android.gms") || p.equals("com.google.android.gsf")
-                    || p.contains("zlink") || p.equals("com.waze") || p.equals("com.google.android.apps.maps")) {
+                    || p.contains("zlink")) {
                 continue;
             }
             am.killBackgroundProcesses(p);
@@ -256,6 +269,8 @@ public class SystemActivity extends Activity {
             ActivityManager.MemoryInfo after = new ActivityManager.MemoryInfo();
             am.getMemoryInfo(after);
             long gain = after.availMem - freedBase;
+            Journal.log("SYS", "libérer la mémoire : " + count + " applis arrêtées, gain "
+                    + ToolsActivity.formatSize(Math.max(0, gain)));
             Toast.makeText(this, count + " applis arrêtées en arrière-plan · "
                     + (gain > 0 ? ToolsActivity.formatSize(gain) + " libérés" : "mémoire déjà propre"), Toast.LENGTH_LONG).show();
             refreshState();
@@ -270,6 +285,8 @@ public class SystemActivity extends Activity {
                     .setMessage(r[1] + "\n\nRéversible à tout moment depuis cet écran.")
                     .setPositiveButton(enabled ? "Désactiver" : "Réactiver", (d, w) -> new Thread(() -> {
                         String out = Root.run("pm " + (enabled ? "disable-user --user 0 " : "enable ") + r[0], 20);
+                        Journal.log("SYS", (enabled ? "désactiver " : "réactiver ") + r[0] + " : "
+                                + (out == null ? "échec" : out.trim()));
                         ui.post(() -> {
                             Toast.makeText(this, out == null ? "Échec" : out.trim(), Toast.LENGTH_SHORT).show();
                             reloadRows();

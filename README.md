@@ -39,9 +39,13 @@ Outils → **Exporter le journal sur la clé**, puis joindre `journal.txt` à l'
 |---|---|
 | `SanderoLauncher/` | Code source de l'appli |
 | `docs/` | Guide d'utilisation, captures |
-| `tools/` | `Sauvegarde_ADB.bat` (image des partitions depuis le PC), scripts d'analyse des applis Topway |
+| `tools/` | Scripts ADB (récupération du système, sauvegarde du boot d'origine, allègement), analyse des applis Topway, rendu 3D de la voiture ; `tools/externes/` : Magisk et Zadig |
+| `autoradio/` | Firmware de l'autoradio de référence (fichiers système, applis Topway et AOSP, infos nettoyées des identifiants), firmware OTA T3-P1, futures images de partitions — voir `autoradio/README.md` |
+| `release/` | Toutes les versions compilées de Sandero (`Sandero_VXXX.apk`) |
+| `3D/` | Modèle 3D de la Sandero |
 | `.claude/` | `CLAUDE.md` à la racine + **skills** : toute la connaissance de l'autoradio (API TWUtil, messages, Bluetooth, caméra, radio, système), utilisable par [Claude Code](https://claude.com/claude-code) |
-| `APP From autoradio/`, `INFOS From autoradio/` | Vos APK et exports personnels (**non versionnés**, voir le README de chaque dossier) |
+
+Les gros fichiers (firmware) sont stockés par **Git LFS** : installer `git lfs` avant de cloner.
 
 ## Avertissement
-Projet personnel, sans lien avec Topway. Il modifie le comportement de l'autoradio (écran d'accueil, caméra, sources audio) : à utiliser à vos risques. Gardez une sauvegarde (Outils → Sauvegarde complète) et le firmware d'origine de votre autoradio. Ne publiez jamais les APK Topway/Google ni vos exports : ils sont protégés par le droit d'auteur ou contiennent des identifiants personnels.
+Projet personnel, sans lien avec Topway. Il modifie le comportement de l'autoradio (écran d'accueil, caméra, sources audio) : à utiliser à vos risques. Gardez une sauvegarde (Outils → Sauvegarde complète) et le firmware d'origine de votre autoradio. Ne publiez jamais d'APK Google ou d'autres applis tierces, ni vos journaux et exports bruts : ils sont protégés par le droit d'auteur ou contiennent des données personnelles (numéro de série, licence OTA, adresses MAC, titres écoutés).

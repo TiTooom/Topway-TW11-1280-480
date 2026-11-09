@@ -1,10 +1,5 @@
 {
   "permissions": {
-    "deny": [
-      "Read(./APP From autoradio/**)",
-      "Read(./INFOS From autoradio/**)",
-      "Edit(./APP From autoradio/**)",
-      "Edit(./INFOS From autoradio/**)"
-    ]
+    "deny": []
   }
 }

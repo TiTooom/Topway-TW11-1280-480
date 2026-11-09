@@ -1,36 +1,61 @@
-# --- Données de l'autoradio : JAMAIS sur GitHub -------------------------------
-# APK propriétaires (Topway, Google, Spotify, Waze…) : redistribution interdite,
-# et plusieurs dépassent la limite de 100 Mo par fichier de GitHub.
-APP From autoradio/*
-!APP From autoradio/README.md
+# Règle du dépôt (décision du propriétaire, 09/11/2026) : on pousse TOUT ce qui sert ou
+# pourra servir (code, scripts, firmware et applis système Topway/AOSP de l'unité, outils
+# libres), SAUF :
+#   - les journaux exportés par Sandero (titres de musique, noms de téléphone…) ;
+#   - les identifiants personnels de l'unité (numéro de série, licence OTA, secret réseau,
+#     adresses MAC, UID/UUID, Config.dat) ;
+#   - les APK de tiers sans droit de redistribution (Google, Waze, Spotify, Torque…).
+# Gros fichiers (> 50 Mo) : Git LFS, voir .gitattributes.
 
-# Infos système, configuration et identifiants personnels de l'autoradio
-# (UID/UUID, adresse Bluetooth, licence OTA, secret réseau dans getprop, manuel Topway).
-INFOS From autoradio/*
-!INFOS From autoradio/README.md
-
-# Sauvegarde fichiers de l'autoradio par ADB (APK, framework, /system, /vendor, getprop…).
-# Contient des identifiants personnels : jamais sur GitHub.
-Backup From autoradio/*
-!Backup From autoradio/README.md
-
-# Exports faits avec les Outils de Sandero, s'ils sont copiés ailleurs
+# --- Journaux et exports de Sandero (données personnelles) ---------------------
 SanderoExport_*/
 SanderoImage_*/
 journal*.txt
 plantages.txt
 twutil_*.txt
+UID.txt
+UUID.txt
+Config.dat
 
-# --- APK compilé : à publier en « Release » GitHub, pas dans le code -----------
-*.apk
-!release/
-!release/Sandero_V*.apk
-*.aab
+# --- Sorties brutes des scripts ADB (avant nettoyage des identifiants) -----------
+# Dump ADB brut (getprop non masqué) : à fusionner dans autoradio/systeme_* après nettoyage.
+autoradio/dumps/
+# Relevés de Boot_Origine.bat (/proc/cmdline peut contenir numéro de série et MAC).
+autoradio/images/releves.txt
+autoradio/images/su.txt
+autoradio/images/partitions.txt
+# Partitions propres à l'unité (numéro de série, MAC, clés) ou trop grosses pour le quota LFS.
+autoradio/images/env.img
+autoradio/images/private.img
+autoradio/images/misc.img
+autoradio/images/frp.img
+autoradio/images/metadata.img
+autoradio/images/cache.img
+autoradio/images/empty.img
+autoradio/images/media_data.img
+autoradio/images/UDISK.img
+autoradio/images/system.img
+autoradio/images/vendor.img
+autoradio/allegement/r.txt
+autoradio/allegement/pss.txt
 
-# Firmware système de l'autoradio publié exprès (décision du propriétaire, 07/11/2026) :
-# APK système AOSP + Topway de l'unité, infos nettoyées des identifiants.
-# PAS les APK Google (Play, GMS, Chrome…), exclus pour droit d'auteur.
-!autoradio_TW11_systeme/**/*.apk
+# --- APK de tiers sans droit de redistribution, où qu'ils soient -----------------
+**/GmsCore/
+**/Phonesky/
+**/Chrome/
+**/WebViewGoogle/
+**/GoogleServicesFramework/
+**/GooglePartnerSetup/
+**/GooglePackageInstaller/
+**/GoogleExtServices/
+**/GoogleExtShared/
+*com.google.android.*.apk
+*com.android.vending*.apk
+*com.android.chrome*.apk
+*com.waze*.apk
+*org.prowl.torque*.apk
+*com.ex.dabplayer*.apk
+*com.spotify*.apk
 
 # --- Android / Gradle ---------------------------------------------------------
 SanderoLauncher/local.properties
@@ -50,7 +75,3 @@ desktop.ini
 __pycache__/
 *.pyc
 .claude/settings.local.json
-
-# --- Photo de la voiture (photo constructeur détourée) : usage perso, pas sur GitHub
-# Sans elle, l'appli utilise le rendu 3D (car_34.png).
-SanderoLauncher/app/src/main/res/drawable-nodpi/car_photo.png

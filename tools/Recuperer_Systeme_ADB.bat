@@ -6,7 +6,9 @@ rem  Recupere les fichiers systeme de l'autoradio, depuis le PC, par ADB.
 rem  Double-clic suffit. Prerequis : debogage USB actif sur l'autoradio
 rem  (Sandero : Outils > Systeme et demarrage > Options developpeur),
 rem  cable USB relie au PC, ou ADB Wi-Fi (le script demande l'adresse IP).
-rem  Les fichiers vont sur le Bureau (SanderoDump_...), JAMAIS dans le depot Git.
+rem  Les fichiers vont dans autoradio\dumps\SanderoDump_... (ignore par Git : getprop brut,
+rem  avec numero de serie et licence OTA). A fusionner ensuite dans autoradio\systeme_*
+rem  apres masquage des identifiants (voir le skill topway-image-systeme).
 rem  Fonctionne sans root (ce que "shell" peut lire) ; plus complet avec adb root.
 rem ------------------------------------------------------------------
 
@@ -42,7 +44,7 @@ if not errorlevel 1 set ROOT=oui
 echo Root : !ROOT!
 
 for /f %%d in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmm"') do set D=%%d
-set OUT=%USERPROFILE%\Desktop\SanderoDump_%D%
+set OUT=%~dp0..\autoradio\dumps\SanderoDump_%D%
 mkdir "%OUT%" 2>nul
 echo Dossier : %OUT%
 echo.

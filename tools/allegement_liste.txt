@@ -1,0 +1,59 @@
+# Applis a desactiver sur l'autoradio (pm disable-user --user 0), sans root, reversible.
+# Utilise par tools/Allegement_ADB.bat et tools/Allegement_Annuler.bat.
+# Format : paquet ; raison. Les lignes commencant par # sont ignorees.
+# Choix du proprietaire (09/11/2026) : seul le Bluetooth est utilise, on garde l'explorateur
+# de fichiers. Aucune navigation, aucun service Google.
+#
+# NE JAMAIS AJOUTER : com.tw.service, com.tw.bt, com.tw.keypad, com.tw.eq, com.tw.carchoose,
+# com.tw.radio (ouvert par Sandero), com.tw.twfileexplore, com.android.systemui,
+# com.android.settings, com.android.providers.settings, com.android.shell (ADB),
+# com.android.bluetooth (OBD2 Sandero), com.android.phone, com.android.server.telecom,
+# com.android.providers.telephony, com.android.providers.contacts (repertoire Bluetooth),
+# com.android.providers.media, com.android.externalstorage (cle USB), com.android.defcontainer,
+# com.google.android.packageinstaller (installer Sandero), com.google.android.webview,
+# com.google.android.ext.services, com.google.android.ext.shared, com.android.inputmethod.latin,
+# com.android.location.fused, com.android.providers.downloads, fr.sandero.launcher.
+
+# --- Vague 1 : services Google et applis tierces (le plus gros gain) ---
+com.google.android.gms ; Services Google : le plus lourd en memoire et en processeur
+com.google.android.gsf ; Cadre des services Google
+com.android.vending ; Play Store
+com.google.android.partnersetup ; Configuration partenaire Google
+com.android.chrome ; Navigateur Chrome
+com.google.android.apps.maps ; Google Maps (non utilise)
+com.waze ; Waze (non utilise)
+org.prowl.torque ; Torque (Sandero a son ecran OBD2)
+com.ex.dabplayer.pad ; Radio DAB+ (non utilisee)
+com.artifex.mupdf ; Lecteur PDF
+
+# --- Vague 1 : Topway inutiles ---
+com.abupdate.fota_demo_iot ; Mises a jour en ligne : a couper aussi pour proteger le boot
+com.tw.assistivetouch ; Menu flottant Topway (couche par-dessus l'ecran)
+com.tw.music ; Lecteur musique USB (non utilise, la musique Bluetooth passe par com.tw.bt)
+com.tw.video ; Lecteur video USB (non utilise)
+com.tw.auxin ; Entree AUX/AV (non utilisee)
+com.android.launcher ; Lanceur d'origine, remplace par Sandero
+com.android.wallpapercropper ; Recadrage de fond d'ecran du lanceur d'origine
+
+# --- Vague 1 : Android inutiles dans une voiture ---
+com.android.dreams.basic ; Ecran de veille
+com.android.wallpaper.livepicker ; Fonds d'ecran animes
+com.android.wallpaperbackup ; Sauvegarde du fond d'ecran
+com.android.printspooler ; Impression
+com.android.printservice.recommendation ; Impression
+com.android.bookmarkprovider ; Favoris web
+com.android.htmlviewer ; Visionneuse HTML
+com.android.emergency ; Infos d'urgence
+com.android.bluetoothmidiservice ; Instruments MIDI Bluetooth
+com.android.companiondevicemanager ; Montres et objets associes
+com.android.managedprovisioning ; Profils professionnels
+com.android.statementservice ; Liens d'applis
+com.android.sharedstoragebackup ; Sauvegarde cloud
+com.android.backupconfirm ; Sauvegarde cloud
+com.android.vpndialogs ; VPN
+com.android.mms.service ; MMS (pas de carte SIM)
+com.android.providers.calendar ; Agenda (plus de synchro Google)
+com.svox.pico ; Synthese vocale (plus de navigation)
+
+# --- Vague 2 (probable, a tester apres la vague 1) : decommenter pour essayer ---
+# com.tw.core ; Demon TWCore (messages, notifications, MQTT) : role exact inconnu

@@ -11,6 +11,16 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 020 · Sandero_V020.apk · 09/11/2026
+
+**Contenu** : allègement aligné sur le choix du propriétaire (Bluetooth seulement, ni navigation ni services Google).
+- Outils → Système et allègement (`SystemActivity`) : ajout à la liste des services Google (`gms`, `gsf`, `partnersetup`, vert), Google Maps et Waze (orange), menu flottant Topway `com.tw.assistivetouch` (vert), lecteurs Topway musique/vidéo/AUX (orange).
+- « Libérer la mémoire » n'épargne plus les services Google, Waze ni Maps.
+- Journal `[SYS]` : libération de mémoire (nombre d'applis, gain) et chaque désactivation/réactivation par root. SystemActivity n'écrivait rien avant.
+- Hors appli : `tools/Allegement_ADB.bat` + `tools/allegement_liste.txt` (35 paquets) + `tools/Allegement_Annuler.bat`, et `tools/Boot_Origine.bat` (sauvegarde du boot d'origine, voir `topway-image-systeme`).
+
+**À vérifier (voiture)** : la liste affiche les nouvelles lignes ; « Libérer la mémoire » sans effet de bord ; lignes `[SYS]` dans le journal. Sans root, une désactivation ouvre toujours la page Android de l'appli.
+
 ## 019 · Sandero_V019.apk · 07/11/2026
 
 **Contenu** : ADB. Nouvelle classe `AdbDiag` ; trois boutons dans Outils → Système et démarrage :

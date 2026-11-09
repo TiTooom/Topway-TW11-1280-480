@@ -1,0 +1,9 @@
+# Firmware et sauvegardes de l'autoradio : à garder octet par octet (pas de conversion
+# des fins de ligne, pas de fusion de texte).
+autoradio/** -text
+tools/externes/** -text
+
+# Fichiers trop gros pour Git (limite GitHub : 100 Mo par fichier) : stockés par Git LFS.
+# Sur un nouveau PC : installer git-lfs (git lfs install) AVANT de cloner.
+autoradio/firmware_*/*.new.dat.br filter=lfs diff=lfs merge=lfs -text
+autoradio/images/*.img filter=lfs diff=lfs merge=lfs -text

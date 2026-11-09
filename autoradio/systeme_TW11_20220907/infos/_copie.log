@@ -1,0 +1,62 @@
+Début Sat Nov  7 16:46:30     2026
+--- /system/app ---
+/system/app/: 29 files pulled, 0 skipped. 0.4 MB/s (94003658 bytes in 200.647s)
+--- /system/bin ---
+adb: error: failed to copy '/system/bin/logd' to 'Backup From autoradio/SanderoDump_20261107_1644/system/bin\logd': remote open failed: Permission denied
+[ 54%] /system/bin/linker: 77%
+--- /system/compatibility_matrix.xml ---
+/system/compatibility_matrix.xml: 1 file pulled, 0 skipped. 0.9 MB/s (74498 bytes in 0.080s)
+--- /system/etc ---
+adb: error: failed to copy '/system/etc/fs_config_dirs' to 'Backup From autoradio/SanderoDump_20261107_1644/system/etc\fs_config_dirs': remote open failed: Permission denied
+[ 11%] /system/etc/exit.png: 100%
+--- /system/fake-libs ---
+/system/fake-libs/: 1 file pulled, 0 skipped. 0.3 MB/s (15020 bytes in 0.051s)
+--- /system/fonts ---
+/system/fonts/: 173 files pulled, 0 skipped. 0.3 MB/s (43611576 bytes in 141.266s)
+--- /system/framework ---
+/system/framework/: 105 files pulled, 0 skipped. 0.7 MB/s (112640041 bytes in 147.975s)
+--- /system/lib ---
+/system/lib/: 454 files pulled, 0 skipped. 0.9 MB/s (133036792 bytes in 135.384s)
+--- /system/manifest.xml ---
+/system/manifest.xml: 1 file pulled, 0 skipped. 0.3 MB/s (2946 bytes in 0.011s)
+--- /system/media ---
+/system/media/: 27 files pulled, 0 skipped. 0.9 MB/s (1185016 bytes in 1.253s)
+--- /system/priv-app ---
+/system/priv-app/: 47 files pulled, 0 skipped. 0.7 MB/s (277275926 bytes in 401.080s)
+--- /system/usr ---
+/system/usr/: 184 files pulled, 0 skipped. 1.0 MB/s (70784305 bytes in 64.979s)
+--- /system/watermark ---
+/system/watermark/: 343 files pulled, 0 skipped. 0.5 MB/s (2096414 bytes in 4.343s)
+--- /system/xbin ---
+/system/xbin/: 32 files pulled, 0 skipped. 1.0 MB/s (4332988 bytes in 4.107s)
+--- /vendor/bin ---
+adb: error: failed to copy '/vendor/bin/hw/android.hardware.bluetooth@1.0-service' to 'Backup From autoradio/SanderoDump_20261107_1644/vendor/bin\hw\android.hardware.bluetooth@1.0-service': remote open failed: Permission denied
+[   ?] /vendor/bin/hw/android.hardware.audio@2.0-service: 100%
+--- /vendor/compatibility_matrix.xml ---
+/vendor/compatibility_matrix.xml: 1 file pulled, 0 skipped. 0.2 MB/s (1750 bytes in 0.007s)
+--- /vendor/default.prop ---
+adb: error: failed to copy '/vendor/default.prop' to 'Backup From autoradio/SanderoDump_20261107_1644/vendor/\default.prop': remote open failed: Permission denied
+--- /vendor/etc ---
+adb: error: failed to copy '/vendor/etc/fs_config_dirs' to 'Backup From autoradio/SanderoDump_20261107_1644/vendor/etc\fs_config_dirs': remote open failed: Permission denied
+[  1%] /vendor/etc/audio_policy_configuration.xml: 100%
+--- /vendor/framework ---
+/vendor/framework/: 2 files pulled, 0 skipped. 0.3 MB/s (12555 bytes in 0.044s)
+--- /vendor/lib ---
+/vendor/lib/: 94 files pulled, 0 skipped. 1.0 MB/s (20739152 bytes in 19.434s)
+--- /vendor/lib64 ---
+/vendor/lib64/: 1 file pulled, 0 skipped. 0.8 MB/s (100084 bytes in 0.115s)
+--- /vendor/manifest.xml ---
+/vendor/manifest.xml: 1 file pulled, 0 skipped. 0.5 MB/s (6295 bytes in 0.011s)
+--- /vendor/media ---
+/vendor/media/: 2 files pulled, 0 skipped. 1.0 MB/s (1052876 bytes in 1.019s)
+--- /vendor/modules ---
+/vendor/modules/: 26 files pulled, 0 skipped. 1.0 MB/s (18321027 bytes in 16.645s)
+--- /vendor/overlay ---
+/vendor/overlay/: 2 files pulled, 0 skipped. 0.4 MB/s (17075 bytes in 0.045s)
+--- /vendor/usr ---
+/vendor/usr/: 1 file pulled, 0 skipped. 0.1 MB/s (1147 bytes in 0.021s)
+--- /vendor/xbin ---
+/vendor/xbin/: 3 files pulled, 0 skipped. 0.0 MB/s (1142 bytes in 0.034s)
+Fin Sat Nov  7 17:06:58     2026
+TAILLE 822M
+TERMINE

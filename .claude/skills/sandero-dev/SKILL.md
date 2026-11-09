@@ -15,7 +15,7 @@ description: Développement de l'appli Sandero (SanderoLauncher/) — carte du c
 | `BtInfo` | Annonces de l'appli Bluetooth Topway (nom, état, titre) |
 | `SanderoService` | Service permanent : marche arrière → caméra, retour au premier plan (réveil, lanceur d'origine), GPS, BtInfo |
 | `ReverseCamActivity` | Caméra de recul intégrée + mini-lecteur |
-| `CarView` | Sandero 1 vue de 3/4 avant : `res/drawable-nodpi/car_photo.png` (photo constructeur détourée par `tools/car3d/PhotoCut`, **non versionnée**, prioritaire) sinon `car_34.png` (rendu du modèle 3D par `tools/car3d/Car3D`), reflet et ombre compris ; repères par image (`Spec`) ; ombre et halo au sol, phares / faisceaux / feu arrière animés (positions en fraction de l'image, voir `tools/car3d/car_34_points.txt`) |
+| `CarView` | Sandero 1 vue de 3/4 avant : `res/drawable-nodpi/car_photo.png` (photo constructeur détourée par `tools/car3d/PhotoCut`, **versionnée depuis le 09/11/2026**, prioritaire) sinon `car_34.png` (rendu du modèle 3D par `tools/car3d/Car3D`), reflet et ombre compris ; repères par image (`Spec`) ; ombre et halo au sol, phares / faisceaux / feu arrière animés (positions en fraction de l'image, voir `tools/car3d/car_34_points.txt`) |
 | `UiScale` | Taille des caractères de l'accueil x1 à x3 (pref `tools`/`ui_scale`, index dans `STEPS`) ; `MainActivity.sc(cap)`, `ph(h)`, `text(size,color,cap)` |
 | `Theme` | Palettes nuit / jour, mode auto 18 h–9 h, choix forcé |
 | `Clock` | Heure Europe/Paris indépendante du fuseau système, recalage GPS, `Clock.View` |
@@ -62,7 +62,9 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.19 — 7 nov. 2026)
+## État du projet (v0.20 — 9 nov. 2026)
+**v0.20 (compilée, non testée)** : allègement aligné sur le choix « Bluetooth seulement » (services Google, Maps, Waze, menu flottant et lecteurs Topway dans la liste ; plus d'exception Google/Waze/Maps dans « Libérer la mémoire ») ; journal `[SYS]`. Scripts ADB `tools/Allegement_ADB.bat` et `tools/Boot_Origine.bat` prêts, jamais lancés.
+
 **Vérifié (v0.19, voiture)** : « Essayer d'ouvrir ADB par Wi-Fi » (`AdbDiag.tryEnable`) ouvre le port 5555 sans root ; le PC le joint (`adb connect 192.168.0.103:5555`), reste à accepter la fenêtre RSA sur l'écran. Prise USB en mode hôte (`otg_role=usb_host`), donc pas d'ADB par câble.
 **À faire** : ADB Wi-Fi relancé au démarrage (le port est perdu au redémarrage).
 **Root (sûr, 07/11)** : pas de root par ADB — `adb root` n'élève pas (adbd sans `ALLOW_ADBD_ROOT`), `su` AOSP non élévateur. Image des partitions bloquée. Pistes : Magisk sur boot.img du firmware, mode FEL Allwinner, menu usine (voir `topway-systeme`).
@@ -126,6 +128,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.15 | (demande) Écran petit, texte illisible de loin | — | `UiScale` x1–x3 dans Outils, plafonds par élément, hauteurs libres dès x>1 |
 | 0.18 | ADB injoignable depuis le PC (rien en USB, 5555 refusé en Wi-Fi) | Prise USB en mode hôte ; adbd sans port TCP | 0.19 : `setprop service.adb.tcp.port 5555` + `ctl.restart adbd` depuis l'appli (accepté sans root, build eng) → ADB Wi-Fi |
 | 0.18 | `car_photo.png` de nouveau absente de `drawable-nodpi/` (APK 537 Ko au lieu de 1,15 Mo) | Fichier non versionné, perdu à nouveau | Restaurée depuis `Sandero_V018.apk` ; **comparer la taille de l'APK à la précédente avant livraison** |
+| 0.19 | Allègement : Google, Waze et Maps épargnés alors que non utilisés | Liste écrite pour un usage « type » avec navigation | 0.20 : ajoutés à la liste, plus épargnés par « Libérer la mémoire » |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -152,4 +155,6 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : v0.18 compilée (bouton Options développeur : contournement du mot de passe Topway, 123456 refusé), non testée.
 - 2026-11-07 : v0.19 compilée (`AdbDiag` : diagnostic ADB, essai ADB Wi-Fi, choix du mode USB), non testée. Photo de la voiture restaurée depuis V018 avant compilation.
 - 2026-11-07 (V019, voiture) : ADB Wi-Fi OK (`AdbDiag.tryEnable` ouvre 5555 sans root, PC connecté après RSA). Shell uid 2000. **Root non obtenu** : `adb root` inopérant (adbd sans ALLOW_ADBD_ROOT), `su` AOSP non élévateur. `dd` des partitions impossible sans root ; `Sauvegarde_ADB.bat` à revoir (dépend de `adb root`). Pistes root notées dans `topway-systeme`.
+- 2026-11-09 : **restructuration du dépôt** (règle 5 de CLAUDE.md réécrite) : tout le firmware de l'unité fusionné dans `autoradio/systeme_TW11_20220907/` (dump ADB + 220 fichiers de `/system/etc` + TWCore/menu flottant), OTA dans `autoradio/firmware_T3-P1_THEME1_20231116/` (LFS), APK Google/Waze/Torque/DAB/MuPDF supprimés, `APP/INFOS/Backup From autoradio` et `autoradio_TW11_systeme/` supprimés, `car_photo.png` et `tools/externes/` versionnés. Secret réseau et licence OTA trouvés en clair dans l'archive poussée le 07/11 (`d1a6afd`) : masqués.
+- 2026-11-09 : v0.20 compilée (allègement aligné, journal `[SYS]`), APK 1,15 Mo avec `car_photo.png` ; non testée.
 - 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.

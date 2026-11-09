@@ -5,7 +5,7 @@ description: Méthode et scripts (tools/reverse/) pour extraire une information 
 
 # Rétro-ingénierie ciblée des applis Topway
 
-**Règle** : les dossiers `APP From autoradio/` et `INFOS From autoradio/` sont interdits en lecture (CLAUDE.md). On ne les ouvre que sur demande explicite de l'utilisateur, pour UNE question, et on reporte la réponse dans le skill concerné. Ne jamais afficher un désassemblage complet (des dizaines de Mo).
+**Règle** : le firmware de l'unité est dans `autoradio/systeme_TW11_20220907/` (APK système dans `system/priv-app/`, `system/app/`, TWCore et menu flottant dans `data_app/`, `framework.jar` dans `system/framework/`). Skills d'abord ; n'y aller que pour une question précise, sur demande de l'utilisateur, pour UNE question, et on reporte la réponse dans le skill concerné. Ne jamais afficher un désassemblage complet (des dizaines de Mo).
 
 ## Outils
 - `dexdump.exe` : `%LOCALAPPDATA%/Android/Sdk/build-tools/34.0.0/dexdump.exe -d classes.dex > app.txt` (travailler dans le dossier temporaire, jamais dans le dépôt).
