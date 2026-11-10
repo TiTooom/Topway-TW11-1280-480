@@ -3,7 +3,7 @@ name: sandero-obd
 description: Lecture OBD2 dans Sandero (Outils → OBD2) par un module ELM327 en Bluetooth, Wi-Fi ou USB, comme Torque — fichiers Obd/ObdPids/ObdUsb/ObdActivity, séquence AT, PID mode 01/09, codes défaut 03/07/0A, CSV, faux module pour l'émulateur, pièges du Bluetooth Topway. À charger pour toute fonction utilisant les valeurs du véhicule.
 ---
 
-# OBD2 dans Sandero (v0.11)
+# OBD2 dans Sandero (v0.21)
 
 ## Fichiers
 | Fichier | Rôle |
@@ -25,7 +25,12 @@ Les valeurs restent dans `Obd.get()` (prêtes pour l'accueil plus tard). Fermer 
    - 3 « NO DATA » de suite → PID **mis de côté et redemandé toutes les 15 s** (v0.10 l'abandonnait pour toujours → valeurs figées).
    - **8 s sans aucune réponse** → « Le véhicule ne répond plus » : valeurs en « pas de réponse », `ATPC`, retour à l'étape 3 (sans couper le module).
    - 5 délais dépassés de suite (pas de `>`) → coupure, nouvel essai dans 5 s.
-- Conso (calcul) : PID 5E (L/h), sinon A2 (mg/coup × 4 cyl × tr/min/2 × 60 / densité ; diesel 832 g/L), sinon MAF (essence 14,7 / 745 g/L, GPL 15,5 / 540 ; rien en diesel).
+- Conso (calcul, `derived`) : 1) PID 5E (L/h), 2) A2 (mg/coup × 4 cyl × tr/min/2 × 60 / densité ; diesel 832 g/L), 3) MAF (essence 14,7 / 745 g/L, GPL 15,5 / 540 ; pas en diesel), 4) **estimation MAP** (v0.21, `mapEstimate`) : air g/s = MAP·cylindrée·(tr/min/120)·remplissage/(287,05·T), T = PID 0F (25 °C sinon) ; essence/GPL : air/AFR ; **diesel : air × charge(04) / 14,5**, densité 832. Puis × correction `k`/100.
+  - Diesel = réglage « Diesel », ou deviné (`diesel()`) : PID 23 annoncé sans 11 ni 10.
+  - Trajet : L/h et km/h intégrés à chaque tour (trous > 5 s ignorés), remis à zéro à la 1re connexion du véhicule : `ID_LTRIP` (L), `ID_KTRIP` (km), `ID_AVG` (L/100, dès 0,5 km).
+  - Distance : seule la vitesse 0D du calculateur est exploitable. 31 (distance depuis effacement) est bloqué à 65535 km sur la voiture (sûr) ; « [ECM] ECU Odometer » de Car Scanner : commande inconnue. Car Scanner calcule aussi sa distance par la vitesse (« Rôle CALC_Distance »). Le « Rôle » de Car Scanner n'indique pas si une valeur est lue ou calculée (prix, heure, moyenne sont en « None »).
+  - Réglage conso (bouton) : prefs `cc` (1461), `ve` (85, pas d'écran), `k` (100 %). Étalonnage : k = litres pompe ÷ « Carburant consommé » × k actuel.
+  - **Probable** : la formule diesel (charge × air / 14,5) donne 1,29 L/h avec le ralenti relevé (100 kPa, 797 tr/min, 44 %, 20 °C), Car Scanner affichait 1,19 L/h (10/11) ; méthode exacte de Car Scanner inconnue. À étalonner par un plein.
 - **Lecture seule** : aucun effacement envoyé. Le terminal permet `04` après confirmation.
 
 ## Recherche de la conso (bouton, v0.11)
@@ -63,4 +68,5 @@ Faux module Wi-Fi (Python, KWP, VIN, P0133) : écouter `0.0.0.0:35000`, répondr
 - 2026-11-05 v0.11 : corrigé (allumage BT, connexion auto, PID redemandés, véhicule recherché à nouveau, recherche de conso). Compilé, accueil vérifié sur émulateur ; **OBD v0.11 pas encore essayé sur la voiture**.
 - 2026-11-06 (v0.11, voiture) : Sandero dCi en KWP FAST ; code P0670 (bougies de préchauffage) mémorisé + en attente. Recherche conso : 015E/01A2/0110/019D/019E/0183 → 7F 01 12 ; 2180 → 7F 21 11 et 10C0 → 7F 10 11 (service 21 et session non pris en charge, en-tête standard) ; en-tête 817AF1 jamais essayé. Rail 225 bar au ralenti (diesel).
 - 2026-11-06 (v0.12) : recherche conso : `7F 21 11` = service 21 absent → en-tête suivant (817AF1) au lieu de balayer 255 blocs ; 10C0 seulement si réponse `50` ; en-tête C133F1 remis après tout ATSH.
+- 2026-11-10 (Car Scanner sur le téléphone, même voiture) : Car Scanner calcule une conso (« Rôle CALC_InstantFuelRate », 1,19 L/h au ralenti, ∞ L/100 à l'arrêt) sans PID carburant ; sa liste « pris en charge » reprend les PID connus (04 05 0B 0C 0D 0F 1C 21 23 30 31…) plus un profil « [ECM] » (Injection Qty, Mass Air Flow g/stroke…, IDs 10255000+) **jamais testé** (bouton « test des capteurs » non lancé). → v0.21 : estimation MAP + charge.
 - 2026-11-06 (v0.13, voiture) : BT Android éteint au départ (« Allumé : non », 0 appairé) → allumé par l'appli au 2e essai ; ELM327 v1.5, KWP FAST, 13 PID, VIN non fourni, P0670 toujours mémorisé + en attente ; MAP 100 kPa, rampe 228 bar, 14,2 V, 797 tr/min, 68 °C au ralenti ; 0x21/0x30/0x31 saturés (0/255/65535 = plafonds). Recherche conso v0.12 : fin en ≈ 3 s (au lieu de 70 s), aucun PID conso trouvé. Incohérence mineure : « OBDII · appairé non » alors que 2 appareils appairés listés.

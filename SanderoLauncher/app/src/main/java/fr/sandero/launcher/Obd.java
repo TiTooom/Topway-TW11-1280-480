@@ -120,6 +120,13 @@ final class Obd {
     private Obd() {
     }
 
+    /** Réglages de l'estimation de conso (cylindrée, remplissage, correction après un plein). */
+    void loadFuelPrefs(android.content.SharedPreferences p) {
+        displacementCc = Math.max(500, Math.min(8000, p.getInt("cc", 1461)));
+        volEff = Math.max(30, Math.min(130, p.getInt("ve", 85)));
+        fuelCorrection = Math.max(30, Math.min(300, p.getInt("k", 100)));
+    }
+
     boolean running() {
         return running;
     }
@@ -147,6 +154,7 @@ final class Obd {
             }
             o.csv = p.getBoolean("csv", false);
             o.fuel = p.getInt("fuel", 0);
+            o.loadFuelPrefs(p);
             Journal.log("OBD", "connexion automatique (" + why + ")");
             o.start(c, t, target, p.getString("proto", "0"));
         } catch (Throwable e) {
@@ -620,10 +628,19 @@ final class Obd {
             if (ObdPids.get(pid) == null) slow.add(pid);
         }
         shown.add(ObdPids.ID_VOLT);
-        if (fuelSource(fast) != 0) {
+        if (first) resetTrip();
+        int src = fuelSource(fast);
+        if (src != 0) {
             shown.add(ObdPids.ID_LH);
-            if (supported01.contains(0x0D)) shown.add(ObdPids.ID_L100);
+            if (supported01.contains(0x0D)) {
+                shown.add(ObdPids.ID_L100);
+                shown.add(ObdPids.ID_AVG);
+            }
+            shown.add(ObdPids.ID_LTRIP);
+            if (supported01.contains(0x0D)) shown.add(ObdPids.ID_KTRIP);
         }
+        Journal.log("OBD", "conso : " + FUEL_SOURCES[src] + (src == 4 ? " · moteur " + (diesel() ? "diesel" : "essence/GPL")
+                + " · cylindrée " + displacementCc + " cm³ · remplissage " + volEff + " % · correction " + fuelCorrection + " %" : ""));
         List<Integer> ordered = new ArrayList<>(fast);
         ordered.addAll(slow);
         for (ObdPids.P p : ObdPids.all()) if (p.once && supported01.contains(p.pid)) ordered.add(p.pid);
@@ -664,6 +681,9 @@ final class Obd {
                     if (fuelSource(fast) != 0) {
                         d.add(ObdPids.ID_LH);
                         d.add(ObdPids.ID_L100);
+                        d.add(ObdPids.ID_AVG);
+                        d.add(ObdPids.ID_LTRIP);
+                        d.add(ObdPids.ID_KTRIP);
                     }
                     d.addAll(found);
                     List<Integer> l = new ArrayList<>(d);
@@ -823,12 +843,46 @@ final class Obd {
         v.time = System.currentTimeMillis();
     }
 
-    /** D'où vient la conso : 1 PID 5E, 2 PID A2 (mg/coup), 3 débit d'air (essence/GPL), 0 rien. */
+    static final String[] FUEL_SOURCES = {"aucune source", "PID 5E (débit carburant)",
+            "PID A2 (carburant injecté)", "PID 10 (débit d'air)", "estimation pression d'admission + régime + charge"};
+
+    /**
+     * D'où vient la conso : 1 PID 5E, 2 PID A2 (mg/coup), 3 débit d'air (essence/GPL),
+     * 4 estimation par la pression d'admission (MAP 0B + régime 0C, + charge 04 en diesel), 0 rien.
+     * La source 4 est celle de la Sandero dCi (ni 5E, ni A2, ni MAF), comme dans Car Scanner.
+     */
     private int fuelSource(List<Integer> readList) {
         if (readList.contains(0x5E)) return 1;
         if (readList.contains(0xA2) && readList.contains(0x0C)) return 2;
-        if (readList.contains(0x10) && fuel != 1) return 3;
+        if (readList.contains(0x10) && !diesel()) return 3;
+        if (readList.contains(0x0B) && readList.contains(0x0C) && (readList.contains(0x04) || !diesel())) return 4;
         return 0;
+    }
+
+    /**
+     * Diesel : choisi dans l'écran, ou deviné quand le réglage est resté sur « Essence » (défaut) :
+     * pression de rampe 23 sans papillon 11 ni débit d'air 10, cas de la Sandero dCi.
+     */
+    boolean diesel() {
+        if (fuel == 1) return true;
+        if (fuel == 2) return false;
+        List<Integer> s = supported01;
+        return s.contains(0x23) && !s.contains(0x11) && !s.contains(0x10);
+    }
+
+    /** Cylindrée (cm³) et remplissage (%) pour l'estimation par la MAP (prefs obd « cc », « ve »). */
+    volatile int displacementCc = 1461, volEff = 85;
+    /** Correction (%) réglée après un plein (pref obd « k ») : conso réelle ÷ conso affichée × 100. */
+    volatile int fuelCorrection = 100;
+
+    // Trajet : débit et vitesse intégrés depuis la connexion.
+    private double tripLiters, tripKm;
+    private long tripLast;
+
+    private void resetTrip() {
+        tripLiters = 0;
+        tripKm = 0;
+        tripLast = 0;
     }
 
     // ================================================================ Recherche de la conso
@@ -963,13 +1017,27 @@ final class Obd {
             // mg par cylindre et par coup × 4 cylindres × (tr/min ÷ 2) × 60 → g/h, ÷ densité (g/L)
             double density = fuel == 1 ? 832 : fuel == 2 ? 540 : 745;
             lh = a2.num * 4 * (rpm.num / 2.0) * 60.0 / 1000.0 / density;
-        } else if (maf != null && !maf.noData && !Double.isNaN(maf.num) && fuel != 1) {
+        } else if (maf != null && !maf.noData && !Double.isNaN(maf.num) && !diesel()) {
             double afr = fuel == 2 ? 15.5 : 14.7, density = fuel == 2 ? 540 : 745; // g/L
             lh = maf.num * 3600.0 / (afr * density);
+        } else {
+            lh = mapEstimate(rpm);
         }
         if (Double.isNaN(lh)) return;
+        lh = lh * fuelCorrection / 100.0;
         put(ObdPids.ID_LH, lh);
         Value sp = values.get(0x0D);
+        // Totaux du trajet (trous de plus de 5 s ignorés : liaison perdue, recherche de conso…)
+        long now = System.currentTimeMillis();
+        if (tripLast != 0 && now - tripLast < 5000) {
+            double h = (now - tripLast) / 3600000.0;
+            tripLiters += lh * h;
+            if (sp != null && !sp.noData && !Double.isNaN(sp.num)) tripKm += sp.num * h;
+        }
+        tripLast = now;
+        put(ObdPids.ID_LTRIP, tripLiters);
+        put(ObdPids.ID_KTRIP, tripKm);
+        if (tripKm >= 0.5) put(ObdPids.ID_AVG, tripLiters * 100.0 / tripKm);
         if (sp != null && !Double.isNaN(sp.num)) {
             if (sp.num >= 3) put(ObdPids.ID_L100, lh * 100.0 / sp.num);
             else {
@@ -977,6 +1045,29 @@ final class Obd {
                 if (v != null) v.num = Double.NaN;
             }
         }
+    }
+
+    /**
+     * Estimation « vitesse-densité » (probable, à étalonner par un plein) : masse d'air aspirée
+     * calculée depuis la pression d'admission, le régime, la température d'air, la cylindrée et
+     * le remplissage. Essence/GPL : carburant = air ÷ rapport stœchiométrique.
+     * Diesel : mélange pauvre et variable ; la charge (PID 04) d'un diesel est la part du débit
+     * maximal de gazole, approchée ici par air × charge ÷ 14,5.
+     */
+    private double mapEstimate(Value rpm) {
+        Value map = values.get(0x0B), load = values.get(0x04), iat = values.get(0x0F);
+        if (map == null || map.noData || Double.isNaN(map.num) || rpm == null || rpm.noData || Double.isNaN(rpm.num))
+            return Double.NaN;
+        double tK = (iat != null && !iat.noData && !Double.isNaN(iat.num) ? iat.num : 25) + 273.15;
+        // g/s = P (Pa) × cylindrée (m³) × tr/s ÷ 2 (4 temps) × remplissage ÷ (R × T), × 1000
+        double airGs = map.num * 1000.0 * (displacementCc / 1e6) * (rpm.num / 120.0) * (volEff / 100.0)
+                / (287.05 * tK) * 1000.0;
+        if (diesel()) {
+            if (load == null || load.noData || Double.isNaN(load.num)) return Double.NaN;
+            return airGs * (load.num / 100.0) / 14.5 * 3600.0 / 832.0;
+        }
+        double afr = fuel == 2 ? 15.5 : 14.7, density = fuel == 2 ? 540 : 745;
+        return airGs * 3600.0 / (afr * density);
     }
 
     // ================================================================ Infos (mode 09, etc.)

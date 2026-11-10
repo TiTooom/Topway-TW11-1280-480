@@ -60,7 +60,7 @@ public class ObdActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Obd obd = Obd.get();
 
-    private TextView statusText, deviceBtn, linkBtn, connectBtn, protoBtn, fuelBtn, csvBtn, autoBtn, footer;
+    private TextView statusText, deviceBtn, linkBtn, connectBtn, protoBtn, fuelBtn, fuelSetBtn, csvBtn, autoBtn, footer;
     private TextView dtcText, infoText, termText;
     private ScrollView termScroll;
     private LinearLayout grid;
@@ -91,6 +91,7 @@ public class ObdActivity extends Activity {
         }
         obd.csv = prefs.getBoolean("csv", false);
         obd.fuel = prefs.getInt("fuel", 0);
+        obd.loadFuelPrefs(prefs);
         Journal.log("UI", "ouverture OBD2");
         registerUsb();
         ui.post(refresh);
@@ -147,6 +148,8 @@ public class ObdActivity extends Activity {
             paintButtons();
         });
         left.addView(fuelBtn);
+        fuelSetBtn = button("", 0xFF334155, v -> chooseFuelSettings());
+        left.addView(fuelSetBtn);
         csvBtn = button("", 0xFF3F3F46, v -> {
             boolean on = !prefs.getBoolean("csv", false);
             prefs.edit().putBoolean("csv", on).apply();
@@ -348,6 +351,7 @@ public class ObdActivity extends Activity {
         int pi = java.util.Arrays.asList(PROTOS).indexOf(proto);
         protoBtn.setText("Protocole : " + (pi < 0 ? proto : PROTO_NAMES[pi]));
         fuelBtn.setText("Carburant (pour la conso) : " + Obd.FUELS[prefs.getInt("fuel", 0)]);
+        fuelSetBtn.setText("Réglage conso : " + prefs.getInt("cc", 1461) + " cm³ · correction " + prefs.getInt("k", 100) + " %");
         boolean csv = prefs.getBoolean("csv", false);
         csvBtn.setText((csv ? "●  " : "○  ") + "Enregistrer en CSV : " + (csv ? "oui" : "non"));
         csvBtn.setBackground(round(csv ? 0xFF166534 : 0xFF3F3F46, 14));
@@ -524,8 +528,9 @@ public class ObdActivity extends Activity {
         for (int id : obd.supported09) p.append(String.format("%02X ", id));
         line(sb, "PID mode 09 annoncés", p.toString().trim());
         sb.append("\nConso « calcul » : depuis le débit carburant (PID 5E) ou le carburant injecté (PID A2) "
-                + "si le calculateur les donne, sinon depuis le débit d'air (essence/GPL seulement). "
-                + "Si rien n'apparaît : bouton « Chercher la conso », moteur tournant.");
+                + "si le calculateur les donne, sinon depuis le débit d'air (essence/GPL), sinon estimée depuis la "
+                + "pression d'admission, le régime et la charge (comme Car Scanner ; à étalonner par un plein : "
+                + "bouton « Réglage conso »). Moteur détecté : " + (obd.diesel() ? "diesel" : "essence/GPL") + ".");
         if (!obd.probeReport.isEmpty()) sb.append("\n\n— Recherche de la conso —\n").append(obd.probeReport);
         return sb.toString();
     }
@@ -587,6 +592,51 @@ public class ObdActivity extends Activity {
         if (t == Obd.T_WIFI) chooseWifi();
         else if (t == Obd.T_USB) chooseUsb();
         else chooseBt();
+    }
+
+    // ---- Réglage de l'estimation de conso
+    private void chooseFuelSettings() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(px(20), px(6), px(20), 0);
+        final EditText cc = numberField(box, "Cylindrée (cm³) · Sandero 1.5 dCi : 1461", prefs.getInt("cc", 1461));
+        final EditText k = numberField(box, "Correction (%) · 100 = aucune", prefs.getInt("k", 100));
+        String trip = obd.values.containsKey(ObdPids.ID_LTRIP) ? obd.format(ObdPids.ID_LTRIP) + " L" : "—";
+        new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                .setTitle("Estimation de la conso")
+                .setMessage("Sans débit carburant fourni par le calculateur, la conso est estimée depuis la pression "
+                        + "d'admission, le régime et la charge. Pour l'étalonner : faire le plein, rouler (connexion OBD "
+                        + "gardée), refaire le plein, puis correction = litres à la pompe ÷ « Carburant consommé » × correction "
+                        + "actuelle.\nCarburant consommé (trajet) : " + trip)
+                .setView(box)
+                .setPositiveButton("OK", (d, w) -> {
+                    try {
+                        int c = Integer.parseInt(cc.getText().toString().trim());
+                        int kk = Integer.parseInt(k.getText().toString().trim());
+                        c = Math.max(500, Math.min(8000, c));
+                        kk = Math.max(30, Math.min(300, kk));
+                        prefs.edit().putInt("cc", c).putInt("k", kk).apply();
+                        obd.loadFuelPrefs(prefs);
+                        Journal.log("OBD", "réglage conso : cylindrée " + c + " cm³ · correction " + kk + " %");
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, "Nombre invalide", Toast.LENGTH_SHORT).show();
+                    }
+                    paintButtons();
+                })
+                .setNegativeButton("Annuler", null).show();
+    }
+
+    private EditText numberField(LinearLayout box, String label, int value) {
+        TextView t = new TextView(this);
+        t.setText(label);
+        t.setTextColor(0xFFCBD5E1);
+        box.addView(t);
+        EditText ed = new EditText(this);
+        ed.setSingleLine(true);
+        ed.setInputType(InputType.TYPE_CLASS_NUMBER);
+        ed.setText(String.valueOf(value));
+        box.addView(ed);
+        return ed;
     }
 
     // ---- Wi-Fi

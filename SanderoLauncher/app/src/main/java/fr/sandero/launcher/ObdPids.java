@@ -55,7 +55,7 @@ final class ObdPids {
     }
 
     // Valeurs calculées
-    static final int ID_VOLT = 0x1000, ID_LH = 0x1001, ID_L100 = 0x1002;
+    static final int ID_VOLT = 0x1000, ID_LH = 0x1001, ID_L100 = 0x1002, ID_LTRIP = 0x1003, ID_AVG = 0x1004, ID_KTRIP = 0x1005;
 
     private static final List<P> ALL = new ArrayList<>();
     private static final Map<Integer, P> MAP = new HashMap<>();
@@ -98,9 +98,12 @@ final class ObdPids {
 
     static {
         // --- Calculées (toujours en tête)
-        add(new P(ID_VOLT, "Batterie (prise OBD)", "V", 0, 1, false, false, null, null, -3));
-        add(new P(ID_LH, "Conso instantanée (calcul)", "L/h", 0, 1, false, false, null, null, -2));
-        add(new P(ID_L100, "Conso (calcul)", "L/100", 0, 1, false, false, null, null, -1));
+        add(new P(ID_VOLT, "Batterie (prise OBD)", "V", 0, 1, false, false, null, null, -5));
+        add(new P(ID_LH, "Conso instantanée (calcul)", "L/h", 0, 2, false, false, null, null, -4));
+        add(new P(ID_L100, "Conso (calcul)", "L/100", 0, 1, false, false, null, null, -3));
+        add(new P(ID_AVG, "Conso moyenne du trajet", "L/100", 0, 1, false, false, null, null, -2));
+        add(new P(ID_LTRIP, "Carburant consommé (trajet)", "L", 0, 2, false, false, null, null, -1));
+        add(new P(ID_KTRIP, "Distance du trajet (vitesse du calculateur)", "km", 0, 2, false, false, null, null, 0));
 
         // --- Essentiel, lu à chaque tour
         num(0x0C, "Régime moteur", "tr/min", 2, 0, true, d -> ab(d) / 4.0);

@@ -11,6 +11,19 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 021 · Sandero_V021.apk · 10/11/2026
+
+**Contenu** : conso de carburant enfin affichée sur la Sandero dCi (Outils → OBD2 → Valeurs).
+- Nouvelle source de conso n° 4 : **estimation par la pression d'admission** (MAP 0B + régime 0C + température d'air 0F + charge 04), la seule possible sur ce calculateur (ni 5E, ni A2, ni MAF). Même principe que Car Scanner, qui affiche 1,19 L/h au ralenti (captures du 10/11).
+- Diesel deviné quand le réglage est resté sur « Essence » (PID 23 sans 11 ni 10).
+- Nouvelles valeurs : « Conso moyenne du trajet » (L/100), « Carburant consommé (trajet) » (L) et « Distance du trajet » (km, vitesse 0D du calculateur intégrée), remis à zéro à chaque connexion.
+- Bouton « Réglage conso » : cylindrée (1461 cm³ par défaut) et correction en % à régler après un plein. Prefs `obd` `cc`, `ve` (85, sans écran), `k`.
+- Journal : `[OBD] conso : <source> · moteur diesel · cylindrée … · remplissage … · correction …`.
+
+**À vérifier (voiture)** : les 4 lignes de conso apparaissent ; ralenti ≈ 1,2-1,3 L/h (Car Scanner : 1,19) ; L/100 cohérent en roulant (5-7 attendu) ; après un plein, régler la correction.
+
+---
+
 ## 020 · Sandero_V020.apk · 09/11/2026
 
 **Contenu** : allègement aligné sur le choix du propriétaire (Bluetooth seulement, ni navigation ni services Google).

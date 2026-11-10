@@ -62,7 +62,9 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.20 — 9 nov. 2026)
+## État du projet (v0.21 — 10 nov. 2026)
+**v0.21 (compilée, non testée)** : conso OBD estimée depuis la pression d'admission + régime + charge (Sandero dCi sans PID carburant), totaux du trajet, bouton « Réglage conso » (voir `sandero-obd`).
+
 **v0.20 (compilée, non testée)** : allègement aligné sur le choix « Bluetooth seulement » (services Google, Maps, Waze, menu flottant et lecteurs Topway dans la liste ; plus d'exception Google/Waze/Maps dans « Libérer la mémoire ») ; journal `[SYS]`. Scripts ADB `tools/Allegement_ADB.bat` et `tools/Boot_Origine.bat` prêts, jamais lancés.
 
 **Vérifié (v0.19, voiture)** : « Essayer d'ouvrir ADB par Wi-Fi » (`AdbDiag.tryEnable`) ouvre le port 5555 sans root ; le PC le joint (`adb connect 192.168.0.103:5555`), reste à accepter la fenêtre RSA sur l'écran. Prise USB en mode hôte (`otg_role=usb_host`), donc pas d'ADB par câble.
@@ -95,7 +97,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - Export : nom du dossier à l'heure de Paris, taille affichée.
 - Voiture 3/4 sur l'accueil (taille, lisibilité au soleil) ; phares : `[MCU] 0x0204` reçu quand on allume les feux ?
 
-**À faire / inconnu** : conso diesel (décoder un bloc Renault après la recherche) ; fréquence / stations radio (0x0401 reçu `00 f8 23 d7`, non décodé) ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root / image du boot (attente firmware PODOFO) ; valeurs OBD sur l'accueil.
+**À faire / inconnu** : conso diesel à vérifier/étalonner (v0.21, estimation MAP) ; conso exacte par les PID « [ECM] Injection Qty » de Car Scanner (commande inconnue : lancer le test des capteurs de Car Scanner et relever son journal de communication) ; fréquence / stations radio (0x0401 reçu `00 f8 23 d7`, non décodé) ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root / image du boot (attente firmware PODOFO) ; valeurs OBD sur l'accueil.
 
 ## Historique des bugs
 | Version | Problème | Cause | Solution |
@@ -130,6 +132,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.18 | ADB injoignable depuis le PC (rien en USB, 5555 refusé en Wi-Fi) | Prise USB en mode hôte ; adbd sans port TCP | 0.19 : `setprop service.adb.tcp.port 5555` + `ctl.restart adbd` depuis l'appli (accepté sans root, build eng) → ADB Wi-Fi |
 | 0.18 | `car_photo.png` de nouveau absente de `drawable-nodpi/` (APK 537 Ko au lieu de 1,15 Mo) | Fichier non versionné, perdu à nouveau | Restaurée depuis `Sandero_V018.apk` ; **comparer la taille de l'APK à la précédente avant livraison** |
 | 0.19 | Allègement : Google, Waze et Maps épargnés alors que non utilisés | Liste écrite pour un usage « type » avec navigation | 0.20 : ajoutés à la liste, plus épargnés par « Libérer la mémoire » |
+| 0.13–0.20 | OBD : aucune conso affichée sur la Sandero dCi (« Chercher la conso » sans résultat) | Calculateur sans 5E, A2 ni MAF ; service 21 refusé ; la MAF calculée était interdite en diesel | 0.21 : estimation par MAP + régime + charge (comme Car Scanner), diesel deviné, correction après un plein |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -158,6 +161,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 (V019, voiture) : ADB Wi-Fi OK (`AdbDiag.tryEnable` ouvre 5555 sans root, PC connecté après RSA). Shell uid 2000. **Root non obtenu** : `adb root` inopérant (adbd sans ALLOW_ADBD_ROOT), `su` AOSP non élévateur. `dd` des partitions impossible sans root ; `Sauvegarde_ADB.bat` à revoir (dépend de `adb root`). Pistes root notées dans `topway-systeme`.
 - 2026-11-09 : **restructuration du dépôt** (règle 5 de CLAUDE.md réécrite) : tout le firmware de l'unité fusionné dans `autoradio/systeme_TW11_20220907/` (dump ADB + 220 fichiers de `/system/etc` + TWCore/menu flottant), OTA dans `autoradio/firmware_T3-P1_THEME1_20231116/` (LFS), APK Google/Waze/Torque/DAB/MuPDF supprimés, `APP/INFOS/Backup From autoradio` et `autoradio_TW11_systeme/` supprimés, `car_photo.png` et `tools/externes/` versionnés. Secret réseau et licence OTA trouvés en clair dans l'archive poussée le 07/11 (`d1a6afd`) : masqués.
 - 2026-11-09 : v0.20 compilée (allègement aligné, journal `[SYS]`), APK 1,15 Mo avec `car_photo.png` ; non testée.
+- 2026-11-10 : v0.21 compilée (conso OBD estimée par la MAP, d'après les captures Car Scanner), APK 1,15 Mo avec `car_photo.png` ; non testée (émulateur non lancé, faux module sans MAP diesel).
 - 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.
 - 2026-11-09 (voiture) : essais de récupération du boot : fastboot et FEL injoignables par USB (prises en mode hôte). Voir `topway-image-systeme`.
 - 2026-11-09 : **alerte GitHub « Publicly leaked secret »** (clé `google_api_key`) dans `autoradio/systeme_TW11_20220907/vendor/lib/mediadrm/libwvdrmengine.so` et `vendor/lib/libwvhidl.so` : clé Google intégrée au Widevine d'origine, présente dans de nombreux autres dépôts → **faux positif**, à fermer dans GitHub (« False positive »), rien à révoquer. Ces deux `.so` Google sont propriétaires : suppression possible au titre de la règle 5 (décision du propriétaire, non tranchée).
