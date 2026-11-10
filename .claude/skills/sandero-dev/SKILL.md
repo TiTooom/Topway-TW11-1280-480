@@ -67,7 +67,8 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 
 **Vérifié (v0.19, voiture)** : « Essayer d'ouvrir ADB par Wi-Fi » (`AdbDiag.tryEnable`) ouvre le port 5555 sans root ; le PC le joint (`adb connect 192.168.0.103:5555`), reste à accepter la fenêtre RSA sur l'écran. Prise USB en mode hôte (`otg_role=usb_host`), donc pas d'ADB par câble.
 **À faire** : ADB Wi-Fi relancé au démarrage (le port est perdu au redémarrage).
-**Root (sûr, 07/11)** : pas de root par ADB — `adb root` n'élève pas (adbd sans `ALLOW_ADBD_ROOT`), `su` AOSP non élévateur. Image des partitions bloquée. Pistes : Magisk sur boot.img du firmware, mode FEL Allwinner, menu usine (voir `topway-systeme`).
+**Root (sûr, 07/11)** : pas de root par ADB — `adb root` n'élève pas (adbd sans `ALLOW_ADBD_ROOT`), `su` AOSP non élévateur. Image des partitions bloquée.
+**Image du boot (sûr, 09/11, voiture)** : `Boot_Origine.bat` étapes 1–2 et `adb reboot efex` essayés : fastboot (logo figé) et FEL (écran noir) atteints côté autoradio, mais **le PC ne voit rien** sur les deux prises USB-A (câble vérifié ; les prises restent en mode hôte, un téléphone branché dessus est reconnu). Voies fastboot/FEL bloquées par le câblage. **En attente du firmware PODOFO** (voir `topway-image-systeme`).
 **Vérifié (v0.18, voiture)** : « Options développeur / débogage USB » ouvre l'écran Android sans mot de passe ; `adb_enabled` passe à 1 ; l'écriture directe est refusée (`WRITE_SECURE_SETTINGS`). Mais le PC ne voit rien en USB (prise en mode hôte) et `adb connect IP:5555` est refusé (adbd n'écoute pas en TCP).
 
 Détail version par version (contenu, retours, marche / ne marche pas, à corriger) : **[VERSIONS.md](VERSIONS.md)**, à tenir à jour à chaque version et à chaque retour.
@@ -94,7 +95,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - Export : nom du dossier à l'heure de Paris, taille affichée.
 - Voiture 3/4 sur l'accueil (taille, lisibilité au soleil) ; phares : `[MCU] 0x0204` reçu quand on allume les feux ?
 
-**À faire / inconnu** : conso diesel (décoder un bloc Renault après la recherche) ; fréquence / stations radio (0x0401 reçu `00 f8 23 d7`, non décodé) ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root non testé ; valeurs OBD sur l'accueil.
+**À faire / inconnu** : conso diesel (décoder un bloc Renault après la recherche) ; fréquence / stations radio (0x0401 reçu `00 f8 23 d7`, non décodé) ; phares (0x0204 jamais reçu) ; état lecture/pause BT réel ; touches volant (laissées à Topway) ; root / image du boot (attente firmware PODOFO) ; valeurs OBD sur l'accueil.
 
 ## Historique des bugs
 | Version | Problème | Cause | Solution |
@@ -158,3 +159,5 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-09 : **restructuration du dépôt** (règle 5 de CLAUDE.md réécrite) : tout le firmware de l'unité fusionné dans `autoradio/systeme_TW11_20220907/` (dump ADB + 220 fichiers de `/system/etc` + TWCore/menu flottant), OTA dans `autoradio/firmware_T3-P1_THEME1_20231116/` (LFS), APK Google/Waze/Torque/DAB/MuPDF supprimés, `APP/INFOS/Backup From autoradio` et `autoradio_TW11_systeme/` supprimés, `car_photo.png` et `tools/externes/` versionnés. Secret réseau et licence OTA trouvés en clair dans l'archive poussée le 07/11 (`d1a6afd`) : masqués.
 - 2026-11-09 : v0.20 compilée (allègement aligné, journal `[SYS]`), APK 1,15 Mo avec `car_photo.png` ; non testée.
 - 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.
+- 2026-11-09 (voiture) : essais de récupération du boot : fastboot et FEL injoignables par USB (prises en mode hôte). Voir `topway-image-systeme`.
+- 2026-11-09 : **alerte GitHub « Publicly leaked secret »** (clé `google_api_key`) dans `autoradio/systeme_TW11_20220907/vendor/lib/mediadrm/libwvdrmengine.so` et `vendor/lib/libwvhidl.so` : clé Google intégrée au Widevine d'origine, présente dans de nombreux autres dépôts → **faux positif**, à fermer dans GitHub (« False positive »), rien à révoquer. Ces deux `.so` Google sont propriétaires : suppression possible au titre de la règle 5 (décision du propriétaire, non tranchée).

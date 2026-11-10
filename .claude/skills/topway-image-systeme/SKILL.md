@@ -12,6 +12,7 @@ Matériel, partitions et état du root : voir `topway-systeme`.
 - Pas de root : `adb root` n'élève pas, `su` AOSP non élévateur. Shell ADB = `uid=2000`.
 - `/dev/block/by-name/*` refusé au shell et à Sandero → **aucun `dd` possible** tant qu'on n'a pas le root.
 - La « Sauvegarde complète » d'Outils et `adb pull` donnent des **fichiers** (APK, /system lisible), **pas une image reflashable**.
+- **Prises USB-A de l'autoradio toujours en mode hôte** (09/11, sûr) : même en fastboot (`adb reboot bootloader` → logo figé) et en FEL (`adb reboot efex` → écran noir), le PC ne voit rien ; un téléphone branché à la place est reconnu. Voies B et C bloquées tant qu'on n'accède pas à l'USB0/OTG (interne, probable). **Voie restante : A.**
 - `tools/Sauvegarde_ADB.bat` suppose `adb root` (`exec-out dd`) → **ne marche pas tel quel** sur cette unité ; avec un root Magisk, remplacer par `exec-out su -c "dd …"`.
 
 ## Partitions à sauver (tailles sûres, 07/11/2026)
@@ -33,7 +34,7 @@ L'unité est vendue sous la marque **PODOFO** (appli « PODOFO Voice » d'origin
 - Mail envoyé au support PODOFO le 09/11/2026 : **réponse en attente**.
 - Autres sources : 4PDA, XDA (« TW11 1280x480 », « T3L Topway »).
 
-### B. `fastboot boot` d'un boot Magisk, en RAM seulement (à essayer, non vérifié)
+### B. `fastboot boot` d'un boot Magisk, en RAM seulement (essayé 09/11 : bloqué, le PC ne voit pas l'unité en fastboot)
 Principe : démarrer une seule fois avec un `boot.img` patché par Magisk **sans l'écrire**, puis copier les partitions avec ce root temporaire. Un redémarrage remet le boot d'origine.
 1. **Relevés sans risque** (ADB Wi-Fi) : `adb shell cat /proc/cmdline`, `adb shell ls -l /dev/block/by-name/`, `adb shell getprop | findstr /i "boot fastboot"`.
 2. **Fastboot existe-t-il ?** Câble PC ↔ prise USB de l'unité, `adb reboot bootloader`, puis `fastboot devices`.
@@ -54,7 +55,8 @@ Principe : démarrer une seule fois avec un `boot.img` patché par Magisk **sans
 - **Piège ADB Wi-Fi** : après `fastboot boot`, le port 5555 est perdu → rouvrir l'ADB Wi-Fi depuis Sandero avant la copie.
 - Risque principal : le boot 2023 (THEME1) ne démarre pas le système 2022. Rien n'est écrit → coupure du contact et retour à l'état d'origine.
 
-### C. Mode FEL Allwinner (dernier recours)
+### C. Mode FEL Allwinner (dernier recours ; essayé 09/11 : bloqué, aucun `1f3a:efe8` vu)
+Ni Magisk ni Zadig n'y changent rien : Windows ne voit même pas de « périphérique inconnu ». Il faudrait l'USB0/OTG du T3, sans doute sur un connecteur interne ou des pastilles de la carte (probable, non vu) : ouverture de l'autoradio et soudure, déconseillées tant que le firmware n'est pas là.
 BootROM USB du T3 (`1f3a:efe8`), `sunxi-fel` + pilote WinUSB (Zadig), chargement d'un U-Boot R40/A40i (sun8iw11) en RAM, puis `mmc read`. Détails et pièges : `topway-systeme` → « Mode FEL ». Lecture seule = récupérable par coupure de courant.
 
 ## Commandes de copie (une fois root obtenu)
@@ -86,3 +88,5 @@ Dossier `autoradio/firmware_T3-P1_THEME1_20231116/` (~430 Mo, versionné ; `syst
 - 2026-11-09 : skill créé. État : aucune image obtenue ; mail au support PODOFO envoyé (attente) ; voie B prête à essayer (étapes 1–2 sans risque à faire en premier).
 - 2026-11-09 : préparation PC : `tools/Boot_Origine.bat` écrit, Magisk v31.1 + Zadig 2.9 téléchargés, `tools/externes/` et `Allwinner T3-P1/` ajoutés au `.gitignore`.
 - 2026-11-09 : ajout de la variante « patch Magisk par clé USB, sans PC » (précautions sur le contenu de la clé). Non encore faite sur la voiture.
+- 2026-11-09 (sur la voiture, sûr) : étape 1 par ADB Wi-Fi : `boot` = `mmcblk0p4`, `recovery` = p8 (liste des 15 partitions confirmée), `/proc/cmdline` refusé au shell, boot actuel du 23/08/2022 (`ro.bootimage.build.date`), `ro.bootloader=unknown`. Étape 2 : `adb reboot bootloader` → **écran figé sur le logo Android**, mais avec le câble USB-A (prise de l'autoradio) → USB-C (PC), Windows ne voit **aucun périphérique** (ni fastboot, ni inconnu, ni `1f3a`). Retour par coupure du contact. Refait sur l'**autre prise USB** de l'autoradio : même résultat (logo figé, rien côté PC en 90 s). Sous Android, `usbc0/otg_role=usb_host`. Reste à vérifier : le câble transporte-t-il les données (essai avec un téléphone sur le PC) ? Si oui, fastboot par USB est inaccessible sur cette unité → voie A ; la voie C (FEL) passe aussi par l'OTG, donc même doute.
+- 2026-11-09 (sur la voiture, sûr) : câble vérifié bon (données OK avec un téléphone). `adb reboot efex` accepté (code 0) → **écran noir**, mais Windows ne voit **aucun** `1f3a:efe8` ni périphérique inconnu en 90 s. Conclusion probable : les prises USB-A accessibles ne sont pas reliées à l'USB0/OTG du T3 en mode périphérique (OTG sans doute sur un connecteur interne ou des pastilles). **Voies B et C bloquées par le câblage USB** ; reste la voie A (firmware PODOFO), ou ouvrir l'autoradio pour trouver l'OTG (non tenté).

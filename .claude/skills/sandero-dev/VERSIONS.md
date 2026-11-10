@@ -21,6 +21,10 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 **À vérifier (voiture)** : la liste affiche les nouvelles lignes ; « Libérer la mémoire » sans effet de bord ; lignes `[SYS]` dans le journal. Sans root, une désactivation ouvre toujours la page Android de l'appli.
 
+**Retours (09/11/2026, voiture, hors appli)** :
+- **Marche** : ADB Wi-Fi de Sandero (relancé après chaque redémarrage) ; `Boot_Origine.bat` étape 1 (relevés : 15 partitions, `boot` = p4) (sûr).
+- **Ne marche pas** : étape 2 (fastboot) : logo figé, PC ne voit rien ; `adb reboot efex` (FEL) : écran noir, PC ne voit rien. Les deux prises USB-A restent en mode hôte (sûr, câble vérifié). Étapes 3–6 non faites. Image du boot en attente du firmware PODOFO.
+
 ## 019 · Sandero_V019.apk · 07/11/2026
 
 **Contenu** : ADB. Nouvelle classe `AdbDiag` ; trois boutons dans Outils → Système et démarrage :

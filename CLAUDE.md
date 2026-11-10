@@ -6,9 +6,10 @@ Les utilisateurs parlent français : interface, commentaires du code, journal et
 
 ## 1. Règles absolues
 
-1. **Le firmware de l'unité est dans `autoradio/`** (voir `autoradio/README.md`) : lisible, mais **skills d'abord**. Toute la connaissance utile en a déjà été extraite dans les skills (section 3).
-   - Pour une question précise : rester ciblé avec les scripts de `tools/reverse/` (une classe, une méthode), ne jamais tout désassembler ni afficher en entier (dizaines de Mo), et reporter le résultat dans le skill concerné.
+1. **Ne pas lire, lister, chercher ni modifier** le contenu de `autoradio/` (firmware de l'unité, OTA, images, dumps : ~1 Go ; voir `autoradio/README.md`). Toute la connaissance utile en a déjà été extraite dans les **skills** (section 3) : les utiliser d'abord.
+   - Exception : uniquement si l'utilisateur le demande explicitement pour une question précise. Alors, rester ciblé avec les scripts de `tools/reverse/` (une classe, une méthode), ne jamais tout désassembler ni afficher en entier, et reporter le résultat dans le skill concerné.
    - Ne jamais afficher dans la conversation une valeur masquée ou un identifiant (numéro de série, licence OTA, secret réseau, MAC), même si on le croise dans un dump brut (`autoradio/dumps/`).
+   - Protections (`.claude/settings.json`) : tout `autoradio/` interdit en lecture ; `autoradio/dumps/` (identifiants en clair), `autoradio/systeme_*/` et `autoradio/firmware_*/` (archive à garder intacte) interdits en écriture. Ne pas contourner par Bash (`cat`, `ls -R`, `unzip`, `strings`…) ; les lever seulement sur demande explicite du propriétaire, puis les remettre aussitôt la tâche finie.
 2. **Ne jamais ouvrir `TWUtil(8)`** (canal du module Bluetooth) par défaut : ça bloque l'appairage du téléphone, même après redémarrage. Passer par le canal principal (`0x9e08`, `0x9f00`) et les annonces `com.unisound.*`. Voir le skill `topway-bluetooth`.
 3. **Une seule instance TWUtil principale** (dans `HeadUnit`), **aucune écriture au MCU au démarrage** (écoute seule). Le Moniteur écoute via `HeadUnit.Raw`, il n'ouvre rien.
 4. Toute nouvelle fonction **journalise** ses actions et ses erreurs dans `Journal` (catégorie courte : `UI`, `MCU`, `CMD`, `BT`, `CAM`, `VOL`, `THEME`, `SVC`, `HEURE`, `SECU`, `OUTILS`…), et **ne doit pas pouvoir faire planter** l'appli : try/catch, et `Safe.begin/end` autour de tout ce qui touche à TWUtil ou au matériel.

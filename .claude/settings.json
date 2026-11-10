@@ -1,5 +1,10 @@
 {
   "permissions": {
-    "deny": []
+    "deny": [
+      "Read(./autoradio/**)",
+      "Edit(./autoradio/dumps/**)",
+      "Edit(./autoradio/systeme_*/**)",
+      "Edit(./autoradio/firmware_*/**)"
+    ]
   }
 }
