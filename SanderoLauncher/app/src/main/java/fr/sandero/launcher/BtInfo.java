@@ -18,7 +18,8 @@ import android.os.Looper;
  *          com.unisound.intent.action.SEND_DEVICE_INFO (deviceName, devicePin) → nom de l'autoradio
  *          android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED (…extra.CONNECTION_STATE)
  *          com.tw.bt_phone_info                         (singal, power)        → réseau et batterie
- * Envoyés : GET_PAIR_INFO, GET_ID3_INFO, GET_DEVICE_INFO, CHECK_BTSTATUS (toutes les 30 s et sur demande).
+ * Envoyés : GET_PAIR_INFO, GET_ID3_INFO, GET_DEVICE_INFO, CHECK_BTSTATUS (toutes les 5 s sans téléphone,
+ *          toutes les 30 s une fois connecté, et sur demande).
  */
 final class BtInfo {
 
@@ -86,7 +87,9 @@ final class BtInfo {
         @Override
         public void run() {
             ask();
-            handler.postDelayed(this, 30_000);
+            // Pas de téléphone vu : on redemande toutes les 5 s pour voir vite celui qui se connecte
+            // tout seul après le démarrage ; une fois connecté, toutes les 30 s suffisent.
+            handler.postDelayed(this, HeadUnit.get().btConn == 2 ? 30_000 : 5_000);
         }
     };
 

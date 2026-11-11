@@ -62,7 +62,8 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.21 — 10 nov. 2026)
+## État du projet (v0.22 — 11 nov. 2026)
+**À vérifier (v0.22, voiture)** : téléphone connecté tout seul après le démarrage → pastille et carte Bluetooth « connecté » (avant : « non connecté » bloqué, voir historique).
 **v0.21 (compilée, non testée)** : conso OBD estimée depuis la pression d'admission + régime + charge (Sandero dCi sans PID carburant), totaux du trajet, bouton « Réglage conso » (voir `sandero-obd`).
 
 **v0.20 (compilée, non testée)** : allègement aligné sur le choix « Bluetooth seulement » (services Google, Maps, Waze, menu flottant et lecteurs Topway dans la liste ; plus d'exception Google/Waze/Maps dans « Libérer la mémoire ») ; journal `[SYS]`. Scripts ADB `tools/Allegement_ADB.bat` et `tools/Boot_Origine.bat` prêts, jamais lancés.
@@ -133,6 +134,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.18 | `car_photo.png` de nouveau absente de `drawable-nodpi/` (APK 537 Ko au lieu de 1,15 Mo) | Fichier non versionné, perdu à nouveau | Restaurée depuis `Sandero_V018.apk` ; **comparer la taille de l'APK à la précédente avant livraison** |
 | 0.19 | Allègement : Google, Waze et Maps épargnés alors que non utilisés | Liste écrite pour un usage « type » avec navigation | 0.20 : ajoutés à la liste, plus épargnés par « Libérer la mémoire » |
 | 0.13–0.20 | OBD : aucune conso affichée sur la Sandero dCi (« Chercher la conso » sans résultat) | Calculateur sans 5E, A2 ni MAF ; service 21 refusé ; la MAF calculée était interdite en diesel | 0.21 : estimation par MAP + régime + charge (comme Car Scanner), diesel deviné, correction après un plein |
+| 0.19 | Musique BT qui joue mais pastille « déconnecté » et carte « Aucun téléphone connecté » | État 0 bloqué : seul `CONNECTION_STATE_CHANGED = 2` le remettait à 2 ; annonce manquée ou `pairName` vide pendant la connexion → nom reçu ensuite ignoré | 0.22 : nom reçu ou titre 0x9f00 = connecté (`markBtConnected`), sondage toutes les 5 s sans téléphone |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -165,3 +167,4 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.
 - 2026-11-09 (voiture) : essais de récupération du boot : fastboot et FEL injoignables par USB (prises en mode hôte). Voir `topway-image-systeme`.
 - 2026-11-09 : **alerte GitHub « Publicly leaked secret »** (clé `google_api_key`) dans `autoradio/systeme_TW11_20220907/vendor/lib/mediadrm/libwvdrmengine.so` et `vendor/lib/libwvhidl.so` : clé Google intégrée au Widevine d'origine, présente dans de nombreux autres dépôts → **faux positif**, à fermer dans GitHub (« False positive »), rien à révoquer. Ces deux `.so` Google sont propriétaires : suppression possible au titre de la règle 5 (décision du propriétaire, non tranchée).
+- 2026-11-11 : v0.22 compilée (bug « BT non connecté » vu en V019, cause trouvée dans le code, journal pas encore reçu), non testée. Piège : V020/V021 avaient été poussées depuis un autre poste ; le correctif, d'abord numéroté V020 en local, a été reporté sur V021 → V022. Toujours `git pull` avant de numéroter.

@@ -164,7 +164,10 @@ final class HeadUnit implements Tw.Listener {
                 if (arg1 == Tw.SRC_BT && obj instanceof String) {
                     String t = ((String) obj).trim();
                     btTitle = "Not Provided".equalsIgnoreCase(t) ? "" : t;
-                    if (!btTitle.isEmpty()) btPlayingGuess = true;
+                    if (!btTitle.isEmpty()) {
+                        btPlayingGuess = true;
+                        markBtConnected("titre en cours 0x9f00");
+                    }
                 } else return;
                 break;
             case Tw.MSG_SOURCE:
@@ -347,9 +350,23 @@ final class HeadUnit implements Tw.Listener {
         if (!n.equals(btDevice)) Journal.log("BT", "téléphone : " + (n.isEmpty() ? "aucun" : n) + (mac == null ? "" : " (" + mac + ")"));
         btDevice = n;
         btMac = mac == null ? "" : mac;
-        if (!n.isEmpty() && btConn < 0) btConn = 2;
-        if (n.isEmpty() && btConn == 2) btConn = 0;
+        // Un nom reçu = téléphone connecté (pairName vaut null après déconnexion, vu le 05/11).
+        // Avant la V020, un état « déconnecté » (0) restait bloqué si l'annonce
+        // CONNECTION_STATE_CHANGED = 2 était manquée : écran « non connecté » alors que la musique joue.
+        if (!n.isEmpty()) markBtConnected("nom du téléphone reçu");
+        else if (btConn == 2) {
+            btConn = 0;
+            btConnected = false;
+        }
         changed();
+    }
+
+    /** Preuve de connexion (nom, titre en cours) : corrige un état « déconnecté » resté en place. */
+    private void markBtConnected(String why) {
+        if (btConn == 2) return;
+        Journal.log("BT", "état de connexion : connecté (déduit : " + why + ", avant : " + btConnText(btConn) + ")");
+        btConn = 2;
+        btConnected = true;
     }
 
     void setBtId3(String title, String artist) {

@@ -11,6 +11,17 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 022 · Sandero_V022.apk · 11/11/2026
+
+**Contenu** : correction Bluetooth « non connecté » alors que le téléphone joue la musique (bug vu en V019 par l'utilisateur).
+- Cause (lue dans le code) : l'état « déconnecté » (`btConn = 0`) ne repassait à « connecté » que sur l'annonce `CONNECTION_STATE_CHANGED = 2`. Si elle était manquée (téléphone connecté avant l'écoute de Sandero, ou `GET_PAIR_INFO` répondu vide pendant la connexion), le nom du téléphone renvoyé ensuite toutes les 30 s était ignoré → pastille « Aucun téléphone · déconnecté » et carte « Aucun téléphone connecté » pour toujours.
+- `HeadUnit.setBtDevice` : un nom reçu (`SEND_PAIR_INFO`) = connecté ; un titre 0x9f00 (arg1 = 8) = connecté aussi (`markBtConnected`). Journal : `[BT] état de connexion : connecté (déduit : …, avant : …)`.
+- `BtInfo` : demandes toutes les **5 s** tant qu'aucun téléphone n'est connecté, 30 s ensuite.
+
+**À vérifier (voiture)** : démarrer, laisser le téléphone se connecter seul → pastille verte en moins de ~5 s ; chercher `déduit` dans le journal (montre que l'annonce de connexion avait été manquée). Couper le Bluetooth du téléphone → « déconnecté » revient.
+
+---
+
 ## 021 · Sandero_V021.apk · 10/11/2026
 
 **Contenu** : conso de carburant enfin affichée sur la Sandero dCi (Outils → OBD2 → Valeurs).
