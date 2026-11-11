@@ -75,3 +75,6 @@ desktop.ini
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# --- Réglages locaux de l'éditeur (créés par VS Code / PlatformIO) -------------
+.vscode/

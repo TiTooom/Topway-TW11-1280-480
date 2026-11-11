@@ -64,6 +64,7 @@ README.md                  présentation du projet (GitHub)
 docs/GUIDE_UTILISATION.md  guide rapide de l'interface
 docs/images/               captures
 SanderoLauncher/           code Android (Java pur, sans AndroidX, minSdk 21, targetSdk 27)
+Elecrow5/                  PROJET SÉPARÉ (autoradio libre sur écran Elecrow ESP32-S3) : ses propres CLAUDE.md, skills et doc dans ce dossier ; ne rien en reporter ici ni dans les skills Topway/Sandero
 tools/Recuperer_Systeme_ADB.bat  copie de /system et /vendor par ADB → autoradio/dumps/ (brut, ignoré)
 tools/Boot_Origine.bat     image d'origine des partitions (fastboot boot Magisk en RAM) → autoradio/images/
 tools/Allegement_ADB.bat   désactive les applis de tools/allegement_liste.txt (+ Allegement_Annuler.bat)

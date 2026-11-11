@@ -1,0 +1,46 @@
+# --- Processeur, flash, PSRAM : réglages qui font la fluidité ---------------------
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_FREERTOS_HZ=1000
+
+# PSRAM octale à 80 MHz (les démos sont souvent en 40 MHz ou en mode quad).
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+# Code et constantes exécutés depuis la PSRAM : l'écran ne décroche pas pendant
+# une écriture en flash (NVS). Ancien et nouveau nom selon la version d'IDF.
+CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
+CONFIG_SPIRAM_RODATA=y
+CONFIG_SPIRAM_XIP_FROM_PSRAM=y
+
+# Cache : lignes de 64 octets = meilleur débit vers la PSRAM pour l'écran RGB.
+CONFIG_ESP32S3_DATA_CACHE_64KB=y
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
+CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
+
+# Écran RGB : interruption en IRAM, et resynchronisation automatique si décalage.
+CONFIG_LCD_RGB_ISR_IRAM_SAFE=y
+CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
+
+# --- LVGL 9 ------------------------------------------------------------------------
+CONFIG_LV_COLOR_DEPTH_16=y
+CONFIG_LV_MEM_SIZE_KILOBYTES=96
+CONFIG_LV_DEF_REFR_PERIOD=15
+CONFIG_LV_ATTRIBUTE_FAST_MEM_USE_IRAM=y
+# Compteur d'images/s et charge processeur en bas à droite (à couper plus tard).
+CONFIG_LV_USE_SYSMON=y
+CONFIG_LV_USE_PERF_MONITOR=y
+CONFIG_LV_FONT_MONTSERRAT_14=y
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_28=y
+CONFIG_LV_FONT_MONTSERRAT_48=y
+CONFIG_LV_FONT_DEFAULT_MONTSERRAT_20=y
+
+# Accueil façon Sandero : dégradés en diagonale (fond, carte audio), jusqu'à 3 couleurs.
+CONFIG_LV_USE_DRAW_SW_COMPLEX_GRADIENTS=y
+CONFIG_LV_GRADIENT_MAX_STOPS=3

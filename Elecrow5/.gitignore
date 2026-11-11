@@ -1,0 +1,6 @@
+.pio/
+managed_components/
+sdkconfig.elecrow5
+sdkconfig.elecrow5.old
+.vscode/
+outils/node_modules/
