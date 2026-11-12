@@ -116,6 +116,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
     // État
     private int mode = MODE_APPS;
+    /** Appli Bluetooth Topway ouverte alors que la source était Bluetooth (voir onResume). */
+    private boolean btAppReturn;
     private int lastSource = -2;
     private boolean lastLights;
     private MediaSessionManager sessions;
@@ -206,6 +208,20 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
         super.onResume();
         applyKiosk();
         Journal.log("UI", "accueil affiché (source " + MODE_NAMES[mode] + ")");
+        if (btAppReturn) {
+            btAppReturn = false;
+            // La source repasse à 0 environ 1,2 s après le retour : on laisse le temps, puis on la remet.
+            handler.postDelayed(() -> {
+                try {
+                    if (mode == MODE_BT && hu.available() && hu.source != Tw.SRC_BT) {
+                        Journal.log("BT", "retour de l'appli Bluetooth Topway : source " + hu.source + " → Bluetooth remis");
+                        hu.selectBt();
+                    }
+                } catch (Throwable t) {
+                    Journal.error("BT", "reprise après l'appli Bluetooth", t);
+                }
+            }, 2500);
+        }
         refreshDock();
         // Liste des applis rechargée en arrière-plan : pas de blocage au retour à l'accueil.
         new Thread(() -> {
@@ -736,7 +752,13 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
                 switch (slot) {
                     case 0: hu.btControl(6); break;
                     case 1: hu.btControl(4); break;
-                    case 2: hu.btControl(1); break;
+                    case 2:
+                        // Source pas encore sur Bluetooth (démarrage) : le téléphone joue souvent déjà
+                        // en silence ; la bascule 1 le mettait en pause (2 appuis à chaque démarrage,
+                        // journal 07–12/11). Source 8 puis « lecture » (5), sans effet si ça joue.
+                        if (hu.source != Tw.SRC_BT) hu.selectBt();
+                        else hu.btControl(1);
+                        break;
                     case 3: hu.btControl(3); break;
                     case 4: launchSlot(SLOT_BT); break;
                 }
@@ -1459,6 +1481,8 @@ public class MainActivity extends Activity implements HeadUnit.Listener {
 
     private void launch(ComponentName cn) {
         Journal.log("UI", "ouverture de " + cn.getPackageName());
+        // L'appli Bluetooth Topway remet la source à 0 en se fermant (vu le 10/11) : à surveiller au retour.
+        btAppReturn = cn.getPackageName().startsWith("com.tw.bt") && hu.source == Tw.SRC_BT;
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .setComponent(cn)

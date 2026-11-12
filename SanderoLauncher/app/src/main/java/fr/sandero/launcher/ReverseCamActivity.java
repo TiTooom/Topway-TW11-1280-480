@@ -409,6 +409,11 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
         int id = order[pos];
         try {
             Camera c = Camera.open(id);
+            if (isFinishing()) {
+                // Camera.open peut bloquer plus d'une seconde : fenêtre fermée entre-temps (vu le 09/11).
+                c.release();
+                return;
+            }
             analogColor(c);
             c.setPreviewDisplay(holder);
             c.startPreview();
@@ -422,7 +427,11 @@ public class ReverseCamActivity extends Activity implements SurfaceHolder.Callba
             Log.w(TAG, "caméra " + id + " (essai " + attempt + ")", e);
             Journal.error("CAM", "caméra " + id + " essai " + attempt, e);
             closeCameraNow();
-            if (attempt < 6) {
+            // Juste après le démarrage de l'autoradio, le service caméra n'est pas prêt
+            // (« Fail to connect » en boucle, 09/11 16:14) : ~10 s d'essais sur la première caméra.
+            boolean booting = android.os.SystemClock.elapsedRealtime() < 120_000 && pos == 0;
+            if (booting && attempt == 6) Journal.log("CAM", "autoradio qui démarre : essais prolongés sur la caméra " + id);
+            if (attempt < (booting ? 40 : 6)) {
                 setStatus("Ouverture de la caméra " + id + "… (" + attempt + ")");
                 cam.postDelayed(() -> openAt(pos, attempt + 1), 250);
             } else {

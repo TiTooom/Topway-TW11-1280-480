@@ -62,7 +62,8 @@ Cache de configuration Gradle activé (`gradle.properties`, demandé par Android
 - Caméra : lancer l'émulateur avec `-camera-back virtualscene`.
 - Préférences persistantes entre tests (ex. thème forcé) : penser à les remettre (Outils, ou `run-as … sed` sur `shared_prefs/tools.xml`).
 
-## État du projet (v0.22 — 11 nov. 2026)
+## État du projet (v0.23 — 12 nov. 2026)
+**À vérifier (v0.23, voiture)** : un seul appui sur lecture au démarrage ; son revenu seul après l'appli Bluetooth Topway ; image au démarrage en marche arrière ; journal allégé (voir VERSIONS.md).
 **À vérifier (v0.22, voiture)** : téléphone connecté tout seul après le démarrage → pastille et carte Bluetooth « connecté » (avant : « non connecté » bloqué, voir historique).
 **v0.21 (compilée, non testée)** : conso OBD estimée depuis la pression d'admission + régime + charge (Sandero dCi sans PID carburant), totaux du trajet, bouton « Réglage conso » (voir `sandero-obd`).
 
@@ -92,7 +93,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - Caméra : « Écran Topway » ou « Retour » pendant le recul → plus de boucle, la caméra Sandero ne revient pas avant le point mort (`[CAM] caméra quittée par l'utilisateur`). Plus d'« accueil affiché » au milieu d'un recul.
 - OBD « Chercher la conso » : `service 21 non pris en charge` puis essai de l'en-tête 817AF1, en quelques secondes au lieu de ~70 s.
 - S'il ne suit pas (`n'a pas renvoyé`), le curseur repasse sur le volume Android. Le curseur suit aussi le bouton de façade.
-- Retour Radio → Bluetooth : la musique reprend-elle (`0x9e08 = 5` 0,9 s après) ?
+- Retour Radio → Bluetooth : la musique reprend (`0x9e08 = 5` 0,9 s après) — **vérifié 09/11 (V019)**.
 - Curseur élargi (75 unités au lieu de 30).
 - OBD : connexion auto au démarrage, allumage du Bluetooth Android, reprise après arrêt du moteur, « Chercher la conso » (blocs Renault service 21 dans le journal).
 - Export : nom du dossier à l'heure de Paris, taille affichée.
@@ -135,6 +136,7 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 | 0.19 | Allègement : Google, Waze et Maps épargnés alors que non utilisés | Liste écrite pour un usage « type » avec navigation | 0.20 : ajoutés à la liste, plus épargnés par « Libérer la mémoire » |
 | 0.13–0.20 | OBD : aucune conso affichée sur la Sandero dCi (« Chercher la conso » sans résultat) | Calculateur sans 5E, A2 ni MAF ; service 21 refusé ; la MAF calculée était interdite en diesel | 0.21 : estimation par MAP + régime + charge (comme Car Scanner), diesel deviné, correction après un plein |
 | 0.19 | Musique BT qui joue mais pastille « déconnecté » et carte « Aucun téléphone connecté » | État 0 bloqué : seul `CONNECTION_STATE_CHANGED = 2` le remettait à 2 ; annonce manquée ou `pairName` vide pendant la connexion → nom reçu ensuite ignoré | 0.22 : nom reçu ou titre 0x9f00 = connecté (`markBtConnected`), sondage toutes les 5 s sans téléphone |
+| 0.20 | Lecture au démarrage = pause (2 appuis) ; silence après l'appli BT Topway ; pas d'image en démarrant en recul ; journal noyé ; lignes datées 2022 | Bascule `0x9e08 = 1` sur un téléphone qui jouait déjà ; com.tw.bt remet la source à 0 en se fermant ; service caméra pas prêt (6 essais) ; annonces et 0x9f1c répétés ; horloge perdue avant le GPS | 0.23 : `selectBt` si source ≠ 8 ; source 8 remise 2,5 s après le retour ; 40 essais au démarrage ; journal seulement sur changement ; « (heure non recalée) » |
 | 0.10 | Export : « 0 o » ; dossier à l'heure de Shanghai ; « impossible de créer /storage/usb0 » | `writeText` ne comptait pas les octets ; `new Date()` système ; clé pas encore montée | 0.11 : comptage, `Clock.format`, message « clé absente ou pas prête » |
 
 ## Journal des vérifications
@@ -167,4 +169,6 @@ Détail version par version (contenu, retours, marche / ne marche pas, à corrig
 - 2026-11-07 : voie root choisie = **mode FEL Allwinner**. Étudié (voir `topway-systeme` → Mode FEL) : FEL atteint le T3 mais ne lit pas l'eMMC sans un U-Boot sun8iw11 chargé ; xfel écarté (ni T3 ni eMMC). Pièce manquante commune à toutes les voies : firmware/BSP T3 (U-Boot + boot.img). Rien redémarré sur la voiture (un FEL sans image à exécuter = écran noir). Prochaine étape : outillage PC (sunxi-tools + Zadig) + firmware de secours.
 - 2026-11-09 (voiture) : essais de récupération du boot : fastboot et FEL injoignables par USB (prises en mode hôte). Voir `topway-image-systeme`.
 - 2026-11-09 : **alerte GitHub « Publicly leaked secret »** (clé `google_api_key`) dans `autoradio/systeme_TW11_20220907/vendor/lib/mediadrm/libwvdrmengine.so` et `vendor/lib/libwvhidl.so` : clé Google intégrée au Widevine d'origine, présente dans de nombreux autres dépôts → **faux positif**, à fermer dans GitHub (« False positive »), rien à révoquer. Ces deux `.so` Google sont propriétaires : suppression possible au titre de la règle 5 (décision du propriétaire, non tranchée).
+- 2026-11-12 (journal voiture V019/V020, 07–12/11) : 6 défauts relevés, détaillés dans VERSIONS.md (V020 → Retours) : bouton lecture au démarrage = bascule (pause), source 0 au retour de com.tw.bt, caméra au démarrage en recul, journal noyé par les annonces répétées, heure 2022 avant le GPS, ADB Wi-Fi non relancé ; OBD BT « module ne répond pas ». Vérifiés : reprise Radio → BT (0x9e08 = 5), caméra quittée respectée, `[SYS]` libérer la mémoire.
+- 2026-11-12 : v0.23 compilée (points 1–5 du journal V020), APK 1,15 Mo avec `car_photo.png` ; non testée (TWUtil absent sur l'émulateur). OBD « ne répond pas » du 09/11 = module pris par Car Scanner (utilisateur).
 - 2026-11-11 : v0.22 compilée (bug « BT non connecté » vu en V019, cause trouvée dans le code, journal pas encore reçu), non testée. Piège : V020/V021 avaient été poussées depuis un autre poste ; le correctif, d'abord numéroté V020 en local, a été reporté sur V021 → V022. Toujours `git pull` avant de numéroter.

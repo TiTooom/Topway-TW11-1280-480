@@ -11,6 +11,20 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 
 ---
 
+## 023 · Sandero_V023.apk · 12/11/2026
+
+**Contenu** : corrections relevées dans le journal V019/V020 du 07–12/11 (voir V020 → Retours).
+1. Bouton lecture (3/5) en Bluetooth quand la source n'est pas 8 : `selectBt` (source 8 puis `0x9e08 = 5` lecture) au lieu de `0x9e08 = 1` (bascule qui mettait en pause le téléphone qui jouait déjà). Source déjà 8 : bascule 1 comme avant.
+2. Retour de l'appli Bluetooth Topway ouverte depuis Sandero (pastille ou bouton 5/5) avec la source sur Bluetooth : 2,5 s après le retour, si la source n'est plus 8, `selectBt`. Journal : `[BT] retour de l'appli Bluetooth Topway : source 0 → Bluetooth remis`.
+3. Caméra : dans les 2 min après le démarrage de l'autoradio, 40 essais (~10 s) sur la première caméra au lieu de 6 (`[CAM] autoradio qui démarre : essais prolongés`) ; caméra ouverte après la fermeture de la fenêtre aussitôt relâchée.
+4. Journal allégé : annonces `com.unisound.*` notées seulement si leur contenu change (l'état de connexion toujours) ; `0x9f1c` et `0x020b` notés seulement quand ils changent, avec `0x9f1c : message précédent répété N fois`.
+5. Horodatage suivi de « (heure non recalée) » tant que l'horloge est avant 2025 et que le GPS ne l'a pas recalée.
+- En plus : `[BT] état de connexion : déconnecté (déduit : nom du téléphone vide)` (passage silencieux avant).
+
+**À vérifier (voiture)** : démarrer avec la musique du téléphone → **un seul** appui sur lecture ; ouvrir l'appli BT par la pastille puis revenir → le son revient seul ; démarrer en marche arrière → image ; journal nettement plus court.
+
+---
+
 ## 022 · Sandero_V022.apk · 11/11/2026
 
 **Contenu** : correction Bluetooth « non connecté » alors que le téléphone joue la musique (bug vu en V019 par l'utilisateur).
@@ -48,6 +62,19 @@ Une ligne « (sûr) » = vu sur la voiture ou dans le journal ; « (émulateur) 
 **Retours (09/11/2026, voiture, hors appli)** :
 - **Marche** : ADB Wi-Fi de Sandero (relancé après chaque redémarrage) ; `Boot_Origine.bat` étape 1 (relevés : 15 partitions, `boot` = p4) (sûr).
 - **Ne marche pas** : étape 2 (fastboot) : logo figé, PC ne voit rien ; `adb reboot efex` (FEL) : écran noir, PC ne voit rien. Les deux prises USB-A restent en mode hôte (sûr, câble vérifié). Étapes 3–6 non faites. Image du boot en attente du firmware PODOFO.
+
+**Retours (journal du 07/11 au 12/11/2026, V019 puis V020 à partir du 09/11 16:44)** :
+- **Marche (sûr)** : « Libérer la mémoire » → `[SYS] 57 applis arrêtées, gain 58,9 Mo`, sans effet de bord visible (annonces BT toujours reçues). Retour Radio → Bluetooth : `0x9e08 = 5` 0,9 s après la source 8, la musique reprend (09/11 15:33). « Caméra quittée par l'utilisateur » respecté jusqu'au point mort (09/11 16:45, 4 min de recul). Caméra 4 apprise et ouverte en ~1,5 s à chaque recul. Export du journal, ADB Wi-Fi (à relancer à chaque démarrage).
+- **À corriger** (1 à 5 corrigés en V023) :
+  1. Bouton lecture (3/5) au démarrage : source 8 + `0x9e08 = 1` (bascule lecture/pause). Le téléphone jouait déjà (titres qui changent, source MCU = 0 → muet), la bascule le met en pause → l'utilisateur appuie **deux fois à chaque démarrage** (vu 7 fois). Probable ; corriger : si la source n'était pas 8, envoyer `5` (lecture) comme `selectBt`.
+  2. Retour de l'appli Bluetooth Topway (pastille → `com.tw.bt`) : à sa fermeture la source MCU repasse à 0 (`0x9e00 = 136` puis `0x0301 = 0`, 10/11 18:38) → silence jusqu'à un nouvel appui. Corriger : au retour sur l'accueil en mode Bluetooth, re-sélectionner la source 8 si elle l'était avant.
+  3. Démarrage en marche arrière (09/11 16:14) : « Fail to connect to camera service » 4 fois sur la caméra 4 (service caméra pas prêt), pas d'image avant le point mort ; ouverture réussie 1 s **après** la fermeture de la fenêtre (Camera.open bloquant ~1,4 s, refermée ensuite). Allonger les essais quand le système vient de démarrer.
+  4. Journal noyé : annonces BT toutes les 30 s (3 lignes ×2) et 0x9f1c/0x020b toutes les 0,5 s en recul → 344 Ko en 5 jours, les 10 000 lignes couvrent peu de temps. Ne journaliser une annonce que si son contenu change ; résumer 0x9f1c/0x020b.
+  5. Heure du journal fausse avant le GPS : un démarrage daté du **23/08/2022 03:45** (09/11 ~16:43, horloge système perdue), et un recul d'1 s à 16:48:31 → 16:48:30. Marquer « heure non recalée » tant que l'année < 2025.
+  6. ADB Wi-Fi à relancer à la main à chaque démarrage (4 fois le 09/11) : option « au démarrage » toujours à faire.
+- **OBD (09/11 16:53, expliqué)** : OBD Bluetooth : connexion RFCOMM OK (« insecure ») mais « le module ne répond pas » à l'initialisation, 6 essais en 2 min ; `appairé non` alors que l'OBDII est choisi dans la liste des appairés. Cause (dite par l'utilisateur, 12/11) : le module était déjà connecté à Car Scanner sur le téléphone. Pas un bug.
+- Observé (probable, Topway) : volume de démarrage plafonné à 20 (30 → 20, 25 → 20 ; 17, 10, 8, 3 conservés). `0x9e00` : arg1 = appli Topway au premier plan (1 radio, 8 BT), +128 à sa fermeture.
+- Dans le code (V022) : `setBtDevice` met `btConn = 0` sans ligne de journal quand le nom reçu est vide (une coupure le 10/11 18:40 n'a pas laissé « état de connexion : déconnecté »).
 
 ## 019 · Sandero_V019.apk · 07/11/2026
 

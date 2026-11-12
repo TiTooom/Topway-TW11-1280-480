@@ -93,9 +93,16 @@ final class BtInfo {
         }
     };
 
+    /** Dernier contenu journalisé par annonce (fil principal uniquement). */
+    private static final java.util.HashMap<String, String> LAST = new java.util.HashMap<>();
+
     private static void handle(Intent i) {
         String a = i.getAction();
-        Journal.log("BT", "annonce " + shortName(a) + " " + extras(i));
+        // Les annonces reviennent toutes les 30 s à l'identique (344 Ko de journal en 5 jours) :
+        // journalisées seulement si leur contenu change (l'état de connexion, toujours).
+        String ex = extras(i);
+        String prev = LAST.put(String.valueOf(a), ex);
+        if (CONN.equals(a) || !ex.equals(prev)) Journal.log("BT", "annonce " + shortName(a) + " " + ex);
         HeadUnit hu = HeadUnit.get();
         if (PAIR.equals(a)) {
             hu.setBtDevice(i.getStringExtra("pairName"), i.getStringExtra("pairMac"));

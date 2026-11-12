@@ -127,6 +127,29 @@ final class HeadUnit implements Tw.Listener {
 
     // ================================================================ Messages reçus
 
+    /**
+     * Messages répétés toutes les 0,5 à 1 s en marche arrière (0x9f1c, 0x020b) : ils noyaient le
+     * journal (≈ 500 lignes pour 4 min de recul, 09/11). Journalisés seulement quand ils changent,
+     * le nombre de répétitions étant noté sur la ligne suivante. Les simulations restent toutes notées.
+     */
+    private final java.util.HashMap<Integer, String> quietLast = new java.util.HashMap<>();
+    private final java.util.HashMap<Integer, Integer> quietCount = new java.util.HashMap<>();
+
+    private synchronized boolean quiet(int what, String line) {
+        if (what != 0x9f1c && what != 0x020b) return false;
+        String prev = quietLast.get(what);
+        if (line.equals(prev)) {
+            Integer n = quietCount.get(what);
+            quietCount.put(what, n == null ? 1 : n + 1);
+            return true;
+        }
+        Integer n = quietCount.remove(what);
+        quietLast.put(what, line);
+        if (n != null && n > 0) Journal.log("MCU", String.format(java.util.Locale.ROOT,
+                "0x%04x : message précédent répété %d fois", what, n));
+        return false;
+    }
+
     @Override
     public void onTw(Tw from, int what, int arg1, int arg2, Object obj) {
         String d;
@@ -135,8 +158,13 @@ final class HeadUnit implements Tw.Listener {
         } catch (Throwable t) {
             d = "?";
         }
-        Journal.log(from == null ? "SIMU" : from == bt ? "BT" : "MCU", String.format(java.util.Locale.ROOT,
-                "0x%04x %s arg1=%d arg2=%d %s", what & 0xffff, name(what), arg1, arg2, d));
+        String line = String.format(java.util.Locale.ROOT,
+                "0x%04x %s arg1=%d arg2=%d %s", what & 0xffff, name(what), arg1, arg2, d);
+        if (from != null && quiet(what & 0xffff, line)) {
+            // message périodique identique au précédent : compté, pas journalisé
+        } else {
+            Journal.log(from == null ? "SIMU" : from == bt ? "BT" : "MCU", line);
+        }
         for (Raw r : new ArrayList<>(raws)) {
             try {
                 r.onRaw(from != null && from == bt ? "BT" : "MCU", what, arg1, arg2, obj);
@@ -355,6 +383,7 @@ final class HeadUnit implements Tw.Listener {
         // CONNECTION_STATE_CHANGED = 2 était manquée : écran « non connecté » alors que la musique joue.
         if (!n.isEmpty()) markBtConnected("nom du téléphone reçu");
         else if (btConn == 2) {
+            Journal.log("BT", "état de connexion : déconnecté (déduit : nom du téléphone vide)");
             btConn = 0;
             btConnected = false;
         }

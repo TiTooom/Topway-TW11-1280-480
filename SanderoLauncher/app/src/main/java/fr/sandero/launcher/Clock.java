@@ -79,8 +79,15 @@ final class Clock {
     static String stamp() {
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.ROOT);
         f.setTimeZone(zone);
-        return f.format(new Date(now()));
+        long t = now();
+        String s = f.format(new Date(t));
+        // Horloge perdue (ligne datée du 23/08/2022 le 09/11/2026) : la signaler tant que le GPS
+        // ne l'a pas recalée, pour ne pas croire ces lignes.
+        return t < JAN_2025 && !gpsSynced ? s + " (heure non recalée)" : s;
     }
+
+    /** 01/01/2025 00:00 UTC : avant, l'horloge de l'autoradio est forcément fausse. */
+    private static final long JAN_2025 = 1735689600000L;
 
     /** Écoute le GPS (toutes les minutes) pour recaler l'heure si l'horloge interne dérive. */
     static void startGps(final Context c) {
